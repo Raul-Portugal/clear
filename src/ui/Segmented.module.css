@@ -1,0 +1,11 @@
+.group { display: flex; gap: 2px; padding: 3px; border-radius: var(--radius-sm); background: var(--bg-sunken); width: fit-content; max-width: 100%; }
+.opt {
+  display: inline-flex; align-items: center; gap: 6px; min-height: 30px; padding: 0 10px;
+  border-radius: 7px; font-size: var(--fs-meta); font-weight: 500; color: var(--text-muted);
+  transition: background var(--dur) var(--spring), color var(--dur) var(--spring), box-shadow var(--dur);
+}
+.opt:hover:not(.on) { color: var(--text); }
+.on { background: var(--c-soft); color: var(--c); box-shadow: var(--shadow-xs); font-weight: 600; }
+@media (max-width: 420px) {
+  .opt { padding: 0 var(--s2); gap: 4px; }
+}

@@ -1,0 +1,2 @@
+.list { margin: 0; padding: 0; }
+.empty { color: var(--text-muted); font-size: var(--fs-meta); text-align: center; padding: var(--s8) 0; }

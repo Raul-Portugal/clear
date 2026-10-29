@@ -1,0 +1,9 @@
+.btn {
+  min-height: var(--tap); padding: 0 var(--s4); border-radius: var(--radius-sm); font-weight: 600;
+  transition: background var(--dur) var(--spring), transform var(--dur) var(--spring);
+}
+.btn:active:not(:disabled) { transform: scale(0.97); }
+.primary { background: var(--accent); color: var(--accent-contrast); }
+.quiet { color: var(--text); }
+.quiet:hover { background: var(--bg-sunken); }
+.btn:disabled { opacity: 0.4; cursor: default; }

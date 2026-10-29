@@ -1,0 +1,8 @@
+.list { margin: 0; display: flex; flex-direction: column; }
+.item { display: flex; justify-content: space-between; align-items: center; min-height: 36px; font-size: var(--fs-meta); }
+.item dd { margin: 0; color: var(--text-muted); }
+kbd { font-family: inherit; background: var(--hairline); border-radius: 4px; padding: 2px var(--s2); }
+.input { width: 100%; min-height: var(--tap); border: 0; border-bottom: 1px solid var(--accent); background: transparent; outline: none; }
+.cmds { list-style: none; margin: var(--s2) 0 0; padding: 0; }
+.cmd { width: 100%; text-align: left; min-height: var(--tap); padding: 0 var(--s3); border-radius: var(--radius-sm); }
+.on { background: var(--hairline); }

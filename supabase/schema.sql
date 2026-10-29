@@ -1,0 +1,29 @@
+-- Clear sync schema (only touches clear_tasks, clear_tags, clear_dumps; additive and idempotent). Paste into Supabase -> SQL Editor -> Run. Safe to re-run.
+
+do $$
+declare t text;
+begin
+  foreach t in array array['clear_tasks','clear_tags','clear_dumps'] loop
+    execute format($f$
+      create table if not exists public.%1$I (
+        user_id uuid not null default auth.uid() references auth.users(id) on delete cascade,
+        id text not null,
+        data jsonb not null,
+        updated_at bigint not null,
+        primary key (user_id, id)
+      )$f$, t);
+    execute format('create index if not exists %I on public.%I (user_id, updated_at)', t || '_user_updated_idx', t);
+    execute format('alter table public.%I enable row level security', t);
+    execute format('drop policy if exists %I on public.%I', t || '_own', t);
+    execute format($f$
+      create policy %I on public.%I for all to authenticated
+      using ((select auth.uid()) = user_id)
+      with check ((select auth.uid()) = user_id)$f$, t || '_own', t);
+    if not exists (
+      select 1 from pg_publication_tables
+      where pubname = 'supabase_realtime' and schemaname = 'public' and tablename = t
+    ) then
+      execute format('alter publication supabase_realtime add table public.%I', t);
+    end if;
+  end loop;
+end $$;

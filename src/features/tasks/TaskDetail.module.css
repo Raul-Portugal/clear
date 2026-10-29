@@ -1,0 +1,106 @@
+.body { display: flex; flex-direction: column; gap: var(--s5); }
+.title {
+  font-size: var(--fs-heading); font-weight: 700; letter-spacing: -0.02em; line-height: 1.25;
+  border: 0; background: transparent; outline: none; width: 100%; padding: 0; resize: none;
+  field-sizing: content; min-height: 1.25em;
+}
+
+/* property list: muted label on the left, compact control on the right */
+.props { display: flex; flex-direction: column; border-radius: var(--radius); background: var(--bg); padding: var(--s1) var(--s3); }
+.prop { display: grid; grid-template-columns: 64px 1fr; align-items: center; gap: var(--s3); min-height: 48px; padding: var(--s1) 0; }
+.prop + .prop { border-top: 1px solid var(--hairline); }
+.label { font-size: var(--fs-meta); color: var(--text-muted); }
+.value { display: flex; flex-direction: column; gap: var(--s2); min-width: 0; align-items: flex-start; }
+.inline { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+.dot { width: 7px; height: 7px; border-radius: 50%; }
+
+.pill {
+  display: inline-flex; align-items: center; gap: 6px; min-height: 32px; padding: 0 var(--s3);
+  border-radius: var(--radius-pill); background: var(--surface); box-shadow: var(--shadow-xs);
+  font-size: var(--fs-meta); font-weight: 500; color: var(--text);
+}
+.pill:hover { box-shadow: var(--shadow-sm); }
+.pill > span { display: inline-flex; align-items: center; gap: 6px; }
+.overdue { color: var(--danger); }
+.datePill { position: relative; display: inline-flex; }
+.hiddenDate { position: absolute; inset: 0; opacity: 0; pointer-events: none; width: 100%; }
+.time {
+  width: 112px;
+  min-height: 32px; border: 0; border-radius: var(--radius-pill); padding: 0 var(--s3); background: var(--surface);
+  box-shadow: var(--shadow-xs); font-size: var(--fs-meta); color: var(--text);
+}
+.clear { width: 28px; height: 28px; display: grid; place-items: center; color: var(--text-muted); border-radius: 50%; }
+.clear:hover { background: var(--bg-sunken); color: var(--text); }
+.newTag, .textField {
+  min-height: 32px; border: 0; border-radius: var(--radius-pill); padding: 0 var(--s3); background: var(--surface);
+  box-shadow: 0 0 0 1.5px var(--accent); outline: none; font-size: var(--fs-meta); width: 140px;
+}
+.textField { box-shadow: var(--shadow-xs); }
+.textField:focus { box-shadow: 0 0 0 1.5px var(--accent); }
+
+.switch { width: 40px; height: 24px; border-radius: var(--radius-pill); background: var(--hairline); position: relative; transition: background var(--dur); }
+.switch span {
+  position: absolute; top: 3px; left: 3px; width: 18px; height: 18px; border-radius: 50%; background: var(--surface);
+  box-shadow: 0 1px 3px rgb(0 0 0 / 0.2); transition: transform var(--dur) var(--spring);
+}
+.switchOn { background: var(--waiting); }
+.switchOn span { transform: translateX(16px); }
+
+.notes {
+  border: 0; background: transparent; resize: none; outline: none; font-size: var(--fs-title); width: 100%;
+  padding: 0; color: var(--text); field-sizing: content; min-height: 2.8em;
+}
+.notes::placeholder { color: var(--text-faint); }
+
+.subs { display: flex; flex-direction: column; }
+.h { font-size: var(--fs-meta); font-weight: 600; color: var(--text-muted); display: flex; gap: var(--s2); margin-bottom: var(--s1); }
+.count { color: var(--text-faint); font-weight: 500; }
+.subList { margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--s1); margin-bottom: var(--s1); }
+.subRow { list-style: none; position: relative; border-radius: var(--radius); }
+.subDragging { z-index: 5; }
+.subDragging .subCard { box-shadow: var(--shadow-lg); }
+.subCard {
+  display: flex; flex-direction: column; align-items: stretch; min-height: 48px;
+  background: var(--surface); border-radius: var(--radius); box-shadow: var(--shadow-xs);
+  transition: box-shadow var(--dur) var(--spring);
+}
+.subRow:hover .subCard { box-shadow: var(--shadow-sm); }
+.subCard:focus-within { box-shadow: 0 0 0 2px var(--accent), var(--shadow-sm); }
+.subTitle {
+  flex: 1; min-width: 0; min-height: 40px; border: 0; background: transparent; outline: none; padding: 0;
+  font-size: var(--fs-title); font-weight: 500; color: var(--text); transition: color var(--dur);
+}
+.struck { text-decoration: line-through; color: var(--text-muted); }
+.subGrip { width: 24px; height: 32px; display: none; place-items: center; color: var(--text-faint); cursor: grab; touch-action: none; }
+.subDel { width: 32px; height: 32px; display: grid; place-items: center; color: var(--text-faint); border-radius: 50%; flex: none; }
+.subDel:hover { color: var(--danger); background: var(--bg-sunken); }
+@media (hover: hover) and (pointer: fine) {
+  .subGrip { display: grid; }
+  .subGrip, .subDel { opacity: 0; transition: opacity var(--dur); }
+  .subRow:hover .subGrip, .subRow:hover .subDel, .subDragging .subGrip, .subDel:focus-visible { opacity: 1; }
+}
+.addSubRow {
+  display: flex; align-items: center; gap: var(--s1); background: var(--bg); border-radius: var(--radius);
+  padding-right: var(--s3); transition: box-shadow var(--dur) var(--spring);
+}
+.addSubRow:focus-within { box-shadow: 0 0 0 2px var(--accent); }
+.addPlus { width: 48px; display: grid; place-items: center; color: var(--accent); flex: none; }
+.addSub { flex: 1; min-width: 0; border: 0; background: transparent; min-height: 48px; padding: 0; outline: none; font-size: var(--fs-title); }
+.addSub::placeholder { color: var(--text-faint); }
+
+.delete {
+  display: inline-flex; align-items: center; gap: var(--s2); color: var(--text-muted); min-height: 36px;
+  font-size: var(--fs-meta); align-self: flex-start; padding: 0 var(--s3); margin-left: calc(-1 * var(--s3)); border-radius: var(--radius-sm);
+}
+.delete:hover { color: var(--danger); background: color-mix(in srgb, var(--danger) 8%, transparent); }
+@media (max-width: 420px) {
+  .props { padding: var(--s1) var(--s2); }
+  .prop { grid-template-columns: 54px 1fr; gap: var(--s2); }
+}
+
+.subLine { display: flex; align-items: center; min-height: 48px; padding-right: var(--s2); }
+.subMeta { padding: 0 var(--s3) var(--s2) 48px; }
+.subMeta:empty { display: none; }
+.subProps { margin: 0 var(--s2) var(--s2); padding: var(--s1) var(--s3); border-radius: var(--radius-sm); background: var(--bg); display: flex; flex-direction: column; }
+.subOpt { width: 32px; height: 32px; display: grid; place-items: center; color: var(--text-faint); border-radius: 50%; flex: none; }
+.subOpt:hover, .subOptOn { color: var(--accent); background: var(--bg-sunken); }

@@ -1,0 +1,8 @@
+.hit { width: 48px; min-height: var(--tap); display: grid; place-items: center; flex: none; }
+.box {
+  width: 22px; height: 22px; border-radius: 50%; border: 1.75px solid var(--text-faint);
+  display: grid; place-items: center; color: var(--accent-contrast);
+  transition: background var(--dur) var(--spring), border-color var(--dur) var(--spring), transform var(--dur) var(--spring);
+}
+.hit:hover .box:not(.on) { border-color: var(--accent); }
+.on { background: var(--success); border-color: var(--success); transform: scale(1.06); }

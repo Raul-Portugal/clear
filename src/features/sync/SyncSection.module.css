@@ -1,0 +1,7 @@
+.h { font-size: var(--fs-meta); font-weight: 500; color: var(--text-muted); margin-bottom: var(--s2); }
+.form { display: flex; flex-direction: column; gap: var(--s2); align-items: flex-start; }
+.input { width: 100%; min-height: var(--tap); padding: 0 var(--s3); color: var(--text); background: transparent; border: 1px solid var(--hairline); border-radius: var(--radius); }
+.note { font-size: var(--fs-meta); color: var(--text-muted); margin-top: var(--s2); }
+.actions { display: flex; gap: var(--s4); }
+.link { min-height: var(--tap); color: var(--accent); font-size: var(--fs-meta); }
+.dot { display: inline-block; width: var(--s2); height: var(--s2); margin-right: var(--s2); border-radius: 50%; background: var(--urg-3); }

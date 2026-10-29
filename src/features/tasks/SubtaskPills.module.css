@@ -1,0 +1,8 @@
+.line { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s1) var(--s3); font-size: var(--fs-meta); }
+.muted { color: var(--text-muted); }
+.overdue { color: var(--danger); font-weight: 500; }
+.badge {
+  display: inline-flex; align-items: center; gap: 5px; height: 22px; padding: 0 var(--s2);
+  border-radius: var(--radius-pill); background: var(--c-soft); color: var(--c); font-weight: 600; white-space: nowrap;
+}
+.dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; }

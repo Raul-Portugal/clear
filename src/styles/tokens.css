@@ -1,0 +1,67 @@
+/* Light is the default theme. Dark applies with data-theme="dark", or data-theme="system" + a dark OS. */
+:root {
+  --bg: #f6f5f2; --bg-sunken: #efede8; --surface: #ffffff;
+  --text: #1f2125; --text-muted: #6b6e76; --text-faint: #a3a5ab;
+  --hairline: #e8e6e1; --accent: #5b5bd6; --accent-soft: #ececfb; --accent-contrast: #ffffff;
+  --success: #2f9e6b; --waiting: #b06d12; --danger: #d63f4c; --overlay: rgb(28 28 32 / 0.28);
+
+  /* urgency: a warm scale (calm → hot) */
+  --urg-1: #c99a1a; --urg-1-soft: #fbf3dc;
+  --urg-2: #e07a2e; --urg-2-soft: #fdebdc;
+  --urg-3: #dc4a5a; --urg-3-soft: #fbe4e6;
+  /* effort: a cool scale (light → heavy) */
+  --eff-quick: #2f9e6b; --eff-quick-soft: #e1f3ea;
+  --eff-medium: #3b82c4; --eff-medium-soft: #e2eef9;
+  --eff-deep: #8257c9; --eff-deep-soft: #eee6fa;
+
+  --shadow-xs: 0 1px 2px rgb(31 33 37 / 0.05), 0 0 0 1px rgb(31 33 37 / 0.04);
+  --shadow-sm: 0 2px 8px rgb(31 33 37 / 0.07), 0 0 0 1px rgb(31 33 37 / 0.04);
+  --shadow-lg: 0 16px 40px rgb(31 33 37 / 0.14), 0 0 0 1px rgb(31 33 37 / 0.04);
+
+  --font: system-ui, -apple-system, 'Segoe UI Variable Text', 'Segoe UI', 'Inter', sans-serif;
+  --fs-title: 1rem; --fs-meta: 0.8125rem; --fs-heading: 1.625rem;
+  --s1: 4px; --s2: 8px; --s3: 12px; --s4: 16px; --s5: 20px; --s6: 24px; --s8: 32px;
+  --radius: 14px; --radius-sm: 10px; --radius-pill: 999px; --tap: 44px;
+  --spring: cubic-bezier(0.2, 0.8, 0.2, 1); --dur: 220ms;
+  --tag-1: #5b7fa6; --tag-2: #5f9373; --tag-3: #a6774f; --tag-4: #9a6a8e;
+  --tag-5: #85854f; --tag-6: #4f9393; --tag-7: #a6604f; --tag-8: #7a6aa6;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root[data-theme='system'] {
+    --bg: #131316; --bg-sunken: #0e0e10; --surface: #1c1c20;
+    --text: #ededef; --text-muted: #9a9ba3; --text-faint: #62636b;
+    --hairline: #2a2a30; --accent: #8f8ff0; --accent-soft: #26264a; --accent-contrast: #131316;
+    --success: #4cc38a; --waiting: #f0a43c; --danger: #f2717c; --overlay: rgb(0 0 0 / 0.6);
+    --urg-1: #e6be4f; --urg-1-soft: #3a3220;
+    --urg-2: #f29a5a; --urg-2-soft: #3d2a1e;
+    --urg-3: #f2717c; --urg-3-soft: #3f2226;
+    --eff-quick: #4cc38a; --eff-quick-soft: #1d3329;
+    --eff-medium: #6aaee8; --eff-medium-soft: #1d2c3d;
+    --eff-deep: #b08ef0; --eff-deep-soft: #2c2342;
+    --shadow-xs: 0 0 0 1px rgb(255 255 255 / 0.05);
+    --shadow-sm: 0 2px 8px rgb(0 0 0 / 0.4), 0 0 0 1px rgb(255 255 255 / 0.06);
+    --shadow-lg: 0 16px 40px rgb(0 0 0 / 0.5), 0 0 0 1px rgb(255 255 255 / 0.06);
+    --tag-1: #8fb0d6; --tag-2: #94c7a5; --tag-3: #d6ad8a; --tag-4: #c994bd;
+    --tag-5: #c2c28a; --tag-6: #8fc7c7; --tag-7: #d6998f; --tag-8: #aa9bd6;
+    color-scheme: dark;
+  }
+}
+:root[data-theme='dark'] {
+  --bg: #131316; --bg-sunken: #0e0e10; --surface: #1c1c20;
+  --text: #ededef; --text-muted: #9a9ba3; --text-faint: #62636b;
+  --hairline: #2a2a30; --accent: #8f8ff0; --accent-soft: #26264a; --accent-contrast: #131316;
+  --success: #4cc38a; --waiting: #f0a43c; --danger: #f2717c; --overlay: rgb(0 0 0 / 0.6);
+  --urg-1: #e6be4f; --urg-1-soft: #3a3220;
+  --urg-2: #f29a5a; --urg-2-soft: #3d2a1e;
+  --urg-3: #f2717c; --urg-3-soft: #3f2226;
+  --eff-quick: #4cc38a; --eff-quick-soft: #1d3329;
+  --eff-medium: #6aaee8; --eff-medium-soft: #1d2c3d;
+  --eff-deep: #b08ef0; --eff-deep-soft: #2c2342;
+  --shadow-xs: 0 0 0 1px rgb(255 255 255 / 0.05);
+  --shadow-sm: 0 2px 8px rgb(0 0 0 / 0.4), 0 0 0 1px rgb(255 255 255 / 0.06);
+  --shadow-lg: 0 16px 40px rgb(0 0 0 / 0.5), 0 0 0 1px rgb(255 255 255 / 0.06);
+  --tag-1: #8fb0d6; --tag-2: #94c7a5; --tag-3: #d6ad8a; --tag-4: #c994bd;
+  --tag-5: #c2c28a; --tag-6: #8fc7c7; --tag-7: #d6998f; --tag-8: #aa9bd6;
+  color-scheme: dark;
+}
