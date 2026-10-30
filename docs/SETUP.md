@@ -3,7 +3,7 @@
 Free tier only. The app works fully offline without any of this; sync is opt-in.
 
 ## 1. Supabase (reuse one of your existing free projects)
-1. Open the project > **SQL Editor** > paste `supabase/schema.sql` > **Run**. It only creates `clear_tasks`, `clear_tags`, `clear_dumps` (with row-level security) and is safe to re-run.
+1. Open the project > **SQL Editor** > paste `supabase/schema.sql` > **Run**. It only creates `clear_tasks`, `clear_tags`, `clear_dumps` (with row-level security) and the private `clear-audio` storage bucket for voice recordings, and is safe to re-run. Re-run it after pulling schema changes.
 2. **Authentication > URL Configuration**: add these under **Redirect URLs** (do NOT change **Site URL**, your other app may depend on it):
    - `https://raul-portugal.github.io/clear/**` (generally `https://<github-user>.github.io/<repo>/**`)
    - `http://localhost:5173/**`
@@ -23,7 +23,8 @@ Copy `.env.example` to `.env.local`, fill in the two values, run `npm run dev`. 
 Open the app > **⋯** menu > **Sync** > enter your email > click the link in the email. Repeat on each device with the same email.
 
 ## Notes
-- Voice recordings stay on the device that made them; text, tasks, tags and brain dumps sync.
+- Tasks, tags, brain dumps and their voice recordings sync. Recordings go to the `clear-audio` bucket (`<user_id>/<audio id>`, only readable by that user) and are downloaded in the background for dumps in the Inbox. Free tier: 1 GB of storage.
+- A recording made in Chrome (WebM) may not play on an older iPhone Safari, and an iPhone recording (MP4) plays everywhere.
 - Conflicts: last write wins per item. Deletes sync as tombstones.
 - Supabase's built-in email is rate-limited (a few links per hour) on the free tier.
 - A link works once and expires after an hour. Requesting a new link invalidates older ones, so always use the newest email. An expired or used link shows "That sign-in link expired" in the app.

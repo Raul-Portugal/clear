@@ -94,6 +94,7 @@ Goal: a fully working basic to-do list that persists offline.
 - [x] Remote schema mirroring Task, Tag and Dump; row-level security (`supabase/schema.sql`, applied)
 - [x] Sync engine: push and pull by `updatedAt`, LWW per task, tombstones, retry — plus the Supabase adapter
 - [~] Realtime updates when the app is open on both devices — built, untested on real devices
+- [x] Voice recordings sync (Supabase Storage bucket `clear-audio`) — needs `schema.sql` re-run; untested on real devices
 - [ ] Verify end to end on laptop + phone: edit on one, appears on the other; offline edits merge on reconnect
 - [x] Export and import JSON (also serves as a backup)
 

@@ -1,6 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Dump, Tag, Task } from '../domain/types';
-import { db } from './db';
+import type { AudioRemote } from './audio';
+import { db, type AudioNote } from './db';
+import { addClip, removeClip } from './dumps';
 import { createSyncEngine, type RemoteStore } from './sync';
 
 const task = (over: Partial<Task> = {}): Task => ({
@@ -35,6 +37,7 @@ class FakeRemote implements RemoteStore {
   tasks = new Table<Task>();
   tags = new Table<Tag>();
   dumps = new Table<Dump>();
+  audio?: AudioRemote;
   fail = 0;
   async pullTasks(since: number) {
     if (this.fail > 0) {
@@ -65,11 +68,13 @@ interface Device {
   tasks: Task[];
   tags: Tag[];
   dumps: Dump[];
+  audio: AudioNote[];
   cursor: string | null;
 }
-const newDevice = (): Device => ({ tasks: [], tags: [], dumps: [], cursor: null });
+const newDevice = (): Device => ({ tasks: [], tags: [], dumps: [], audio: [], cursor: null });
 async function asDevice<T>(d: Device, fn: () => Promise<T>): Promise<T> {
-  await Promise.all([db.tasks.clear(), db.tags.clear(), db.dumps.clear()]);
+  await Promise.all([db.tasks.clear(), db.tags.clear(), db.dumps.clear(), db.audio.clear()]);
+  await db.audio.bulkPut(d.audio);
   await db.tasks.bulkPut(d.tasks);
   await db.tags.bulkPut(d.tags);
   await db.dumps.bulkPut(d.dumps);
@@ -81,6 +86,7 @@ async function asDevice<T>(d: Device, fn: () => Promise<T>): Promise<T> {
     d.tasks = await db.tasks.toArray();
     d.tags = await db.tags.toArray();
     d.dumps = await db.dumps.toArray();
+    d.audio = await db.audio.toArray();
     d.cursor = localStorage.getItem('clear-sync-cursor');
   }
 }
@@ -233,5 +239,82 @@ describe('sync engine', () => {
     stop();
     await vi.advanceTimersByTimeAsync(10_000);
     expect(spy).toHaveBeenCalledTimes(4);
+  });
+});
+
+class FakeAudio implements AudioRemote {
+  files = new Map<string, Blob>();
+  fail = false;
+  async upload(id: string, blob: Blob) {
+    if (this.fail) throw new Error('no bucket');
+    this.files.set(id, blob);
+  }
+  async download(id: string) {
+    return this.files.get(id) ?? null;
+  }
+  async remove(id: string) {
+    this.files.delete(id);
+  }
+}
+
+describe('sync engine with audio', () => {
+  let remote: FakeRemote;
+  let audio: FakeAudio;
+  let a: Device;
+  let b: Device;
+  const sync = (d: Device) => asDevice(d, () => createSyncEngine(remote).syncOnce());
+  const clip = () => new Blob(['voice'], { type: 'audio/webm' });
+
+  beforeEach(() => {
+    audio = new FakeAudio();
+    remote = new FakeRemote();
+    remote.audio = audio;
+    a = newDevice();
+    b = newDevice();
+    localStorage.clear();
+  });
+
+  it('uploads a recording and downloads it on the other device', async () => {
+    a.dumps = [dump({ updatedAt: 2 })];
+    const id = await asDevice(a, () => addClip('d1', clip()));
+    await sync(a);
+    expect(audio.files.has(id)).toBe(true);
+    expect(remote.dumps.rows.get('d1')?.audioIds).toEqual([id]);
+    expect(a.audio.find((r) => r.id === id)?.pendingUpload).toBeUndefined();
+    await sync(b);
+    expect(b.dumps[0].audioIds).toEqual([id]);
+    expect(b.audio.map((r) => r.id)).toEqual([id]);
+  });
+
+  it('keeps a clip not yet uploaded when a newer remote dump arrives', async () => {
+    a.dumps = [dump({ updatedAt: 2 })];
+    await sync(a);
+    const id = await asDevice(a, () => addClip('d1', clip()));
+    remote.dumps.rows.set('d1', dump({ text: 'edited elsewhere', updatedAt: Date.now() + 60_000 }));
+    audio.fail = true;
+    await expect(sync(a)).rejects.toThrow('no bucket');
+    expect(a.dumps[0]).toMatchObject({ text: 'edited elsewhere', audioIds: [id] });
+    audio.fail = false;
+    await sync(a);
+    await sync(a);
+    expect(remote.dumps.rows.get('d1')?.audioIds).toEqual([id]);
+  });
+
+  it('removes a deleted recording remotely', async () => {
+    a.dumps = [dump({ updatedAt: 2 })];
+    const id = await asDevice(a, () => addClip('d1', clip()));
+    await sync(a);
+    await asDevice(a, () => removeClip('d1', id));
+    expect(a.audio[0]).toMatchObject({ id, pendingDelete: 1 });
+    await sync(a);
+    expect(audio.files.has(id)).toBe(false);
+    expect(a.audio).toEqual([]);
+  });
+
+  it('drops a never-uploaded recording without touching the remote', async () => {
+    a.dumps = [dump({ updatedAt: 2 })];
+    const id = await asDevice(a, () => addClip('d1', clip()));
+    await asDevice(a, () => removeClip('d1', id));
+    expect(a.audio).toEqual([]);
   });
 });

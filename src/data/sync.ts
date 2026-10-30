@@ -1,5 +1,6 @@
 import { mergeRow } from '../domain/merge';
 import type { Dump, Tag, Task } from '../domain/types';
+import { pendingUploads, syncAudio, type AudioRemote } from './audio';
 import { db } from './db';
 
 export interface RemoteStore {
@@ -9,6 +10,8 @@ export interface RemoteStore {
   pushTags(rows: Tag[]): Promise<void>;
   pullDumps(since: number): Promise<Dump[]>;
   pushDumps(rows: Dump[]): Promise<void>;
+  /** Voice recordings. Without it they stay on the device that made them. */
+  audio?: AudioRemote;
 }
 
 export interface SyncOptions {
@@ -64,7 +67,7 @@ interface Adapter<T extends Row> {
   put(row: T): Promise<void>;
   changedSince(cursor: number): Promise<T[]>;
   /** What to store when adopting a remote row over the local one. */
-  adopt(remote: T, local: T | undefined): T;
+  adopt(remote: T, local: T | undefined): T | Promise<T>;
   /** What to send for a local row. */
   outgoing(row: T): T;
 }
@@ -77,7 +80,7 @@ async function syncCollection<T extends Row>(a: Adapter<T>, cursor: number): Pro
     maxSeen = Math.max(maxSeen, r.updatedAt ?? 0);
     const local = await a.get(r.id);
     if (mergeRow(local, r) === r) {
-      const next = a.adopt(r, local);
+      const next = await a.adopt(r, local);
       if (!local || JSON.stringify(local) !== JSON.stringify(next)) await a.put(next);
       adopted.add(r.id);
     }
@@ -123,9 +126,16 @@ export function createSyncEngine(remote: RemoteStore, opts: SyncOptions = {}) {
     get: (id) => db.dumps.get(id),
     put: async (r) => void (await db.dumps.put(r)),
     changedSince: (c) => db.dumps.where('updatedAt').above(c).toArray(),
-    // Audio blobs are device-local: never let a remote copy erase local recordings.
-    adopt: (r, local) => ({ ...r, audioIds: local?.audioIds ?? [] }),
-    outgoing: (r) => ({ ...r, audioIds: [] }),
+    adopt: async (r, local) => {
+      if (!remote.audio) return { ...r, audioIds: local?.audioIds ?? [] };
+      // A clip recorded here but not uploaded yet is unknown remotely: keep it, and bump so it pushes.
+      const kept = (await pendingUploads(local?.audioIds ?? [])).filter((id) => !r.audioIds.includes(id));
+      return kept.length
+        ? { ...r, audioIds: [...r.audioIds, ...kept], updatedAt: Math.max(Date.now(), (r.updatedAt ?? 0) + 1) }
+        : r;
+    },
+    // Without remote audio, clip ids would point at nothing on other devices.
+    outgoing: (r) => (remote.audio ? r : { ...r, audioIds: [] }),
   };
 
   async function run(): Promise<SyncResult> {
@@ -148,6 +158,10 @@ export function createSyncEngine(remote: RemoteStore, opts: SyncOptions = {}) {
     } finally {
       // Keep the cursors of collections that completed even if a later one failed.
       writeCursors(cursorKey, next);
+    }
+    if (remote.audio) {
+      const inbox = await db.dumps.filter((d) => !d.deletedAt && !d.organizedAt).toArray();
+      await syncAudio(remote.audio, inbox.flatMap((d) => d.audioIds));
     }
     return { pulled, pushed };
   }

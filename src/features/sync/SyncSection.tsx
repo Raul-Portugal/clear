@@ -68,7 +68,6 @@ export function SyncSection() {
           </div>
         </div>
       )}
-      <p className={styles.note}>Voice recordings stay on the device they were made on.</p>
     </section>
   );
 }

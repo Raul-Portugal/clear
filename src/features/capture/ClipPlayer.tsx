@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { liveQuery } from 'dexie';
 import { X } from 'lucide-react';
 import { getAudio } from '../../data/audio';
 import styles from './ClipPlayer.module.css';
@@ -13,16 +14,19 @@ interface Props {
 export function ClipPlayer({ audioId, label, onRemove }: Props) {
   const [url, setUrl] = useState<string>();
 
+  // Live, so a recording downloaded by sync appears without reopening.
   useEffect(() => {
     let made: string | undefined;
-    let cancelled = false;
-    void getAudio(audioId).then((blob) => {
-      if (!blob || cancelled) return;
-      made = URL.createObjectURL(blob);
-      setUrl(made);
+    const sub = liveQuery(() => getAudio(audioId)).subscribe({
+      next: (blob) => {
+        if (made) URL.revokeObjectURL(made);
+        made = blob ? URL.createObjectURL(blob) : undefined;
+        setUrl(made);
+      },
+      error: () => {},
     });
     return () => {
-      cancelled = true;
+      sub.unsubscribe();
       if (made) URL.revokeObjectURL(made);
     };
   }, [audioId]);

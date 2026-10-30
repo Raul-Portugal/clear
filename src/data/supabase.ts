@@ -1,5 +1,6 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import type { Dump, Tag, Task } from '../domain/types';
+import type { AudioRemote } from './audio';
 import type { RemoteStore } from './sync';
 
 const url = (import.meta.env.VITE_SUPABASE_URL as string | undefined) ?? '';
@@ -66,5 +67,27 @@ export function createSupabaseRemote(c: SupabaseLike): RemoteStore {
     pushTags: (rows) => push('tags', rows as (Tag & Row)[]),
     pullDumps: (since) => pull<Dump>('dumps', since),
     pushDumps: (rows) => push('dumps', rows as (Dump & Row)[]),
+  };
+}
+
+export const AUDIO_BUCKET = 'clear-audio';
+
+/** Recordings in a private Storage bucket, one folder per user (enforced by RLS on storage.objects). */
+export function createSupabaseAudio(storage: SupabaseClient['storage'], userId: string): AudioRemote {
+  const bucket = () => storage.from(AUDIO_BUCKET);
+  const path = (id: string) => `${userId}/${id}`;
+  return {
+    async upload(id, blob) {
+      const { error } = await bucket().upload(path(id), blob, { upsert: true, contentType: blob.type || 'audio/webm' });
+      if (error) throw error;
+    },
+    async download(id) {
+      const { data, error } = await bucket().download(path(id));
+      return error ? null : data;
+    },
+    async remove(id) {
+      const { error } = await bucket().remove([path(id)]);
+      if (error) throw error;
+    },
   };
 }

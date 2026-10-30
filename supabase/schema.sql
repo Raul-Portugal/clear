@@ -1,4 +1,4 @@
--- Clear sync schema (only touches clear_tasks, clear_tags, clear_dumps; additive and idempotent). Paste into Supabase -> SQL Editor -> Run. Safe to re-run.
+-- Clear sync schema (only touches clear_tasks, clear_tags, clear_dumps and the clear-audio storage bucket; additive and idempotent). Paste into Supabase -> SQL Editor -> Run. Safe to re-run.
 
 do $$
 declare t text;
@@ -27,3 +27,13 @@ begin
     end if;
   end loop;
 end $$;
+
+-- Voice recordings: a private bucket, one folder per user (<user_id>/<audio id>).
+insert into storage.buckets (id, name, public)
+values ('clear-audio', 'clear-audio', false)
+on conflict (id) do nothing;
+
+drop policy if exists clear_audio_own on storage.objects;
+create policy clear_audio_own on storage.objects for all to authenticated
+  using (bucket_id = 'clear-audio' and (storage.foldername(name))[1] = (select auth.uid())::text)
+  with check (bucket_id = 'clear-audio' and (storage.foldername(name))[1] = (select auth.uid())::text);

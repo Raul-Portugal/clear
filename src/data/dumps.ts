@@ -1,7 +1,7 @@
 import { v7 as uuid } from 'uuid';
 import type { ProposedTask } from '../domain/proposed';
 import type { Dump } from '../domain/types';
-import { saveAudio } from './audio';
+import { deleteAudio, saveAudio } from './audio';
 import { commitProposed } from './capture';
 import { db } from './db';
 import { extendLastUndo, pushUndo } from './undo';
@@ -29,7 +29,7 @@ export async function removeClip(id: string, audioId: string): Promise<void> {
   const dump = await db.dumps.get(id);
   if (!dump) return;
   await db.dumps.update(id, { audioIds: dump.audioIds.filter((a) => a !== audioId), updatedAt: Date.now() });
-  await db.audio.delete(audioId);
+  await deleteAudio(audioId);
 }
 
 /** Drops a dump that was opened but never given any content. */

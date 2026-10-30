@@ -4,7 +4,7 @@ import { liveQuery } from 'dexie';
 import type { RealtimeChannel } from '@supabase/supabase-js';
 import { db } from '../../data/db';
 import { createSyncEngine } from '../../data/sync';
-import { TABLES, createSupabaseRemote, getSupabase, syncConfigured } from '../../data/supabase';
+import { TABLES, createSupabaseAudio, createSupabaseRemote, getSupabase, syncConfigured } from '../../data/supabase';
 import { useToast } from '../../ui/Toast';
 import { authLinkError } from './authLink';
 
@@ -52,7 +52,7 @@ export const useSync = create<SyncState>(() => ({
 function startForUser(userId: string, email: string | null): () => void {
   const sb = getSupabase();
   if (!sb) return () => {};
-  const engine = createSyncEngine(createSupabaseRemote(sb), { cursorKey: 'clear-sync-cursor:' + userId });
+  const engine = createSyncEngine({ ...createSupabaseRemote(sb), audio: createSupabaseAudio(sb.storage, userId) }, { cursorKey: 'clear-sync-cursor:' + userId });
   const set = useSync.setState;
   set({ email, status: 'syncing', linkSent: false });
 

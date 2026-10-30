@@ -94,6 +94,7 @@ A mic button inside the brain dump (tap to start/stop, or hold to talk), plus a 
 - The **original audio is always recorded and kept** with the dump, with a player to listen back and a remove button. Several recordings can be added to one dump.
 - Where the browser supports speech recognition, a live transcript is written into the text area. It is editable because transcripts can be wrong, and the audio is right beside it to check against. Where it does not, the recording is still kept and the user can type or just listen.
 - Organizing a dump attaches its first recording to the tasks created from it.
+- When sync is on, recordings sync with their dump, and removing one removes it everywhere.
 
 ## 6. Interaction
 
