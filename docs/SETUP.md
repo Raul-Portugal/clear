@@ -5,8 +5,10 @@ Free tier only. The app works fully offline without any of this; sync is opt-in.
 ## 1. Supabase (reuse one of your existing free projects)
 1. Open the project > **SQL Editor** > paste `supabase/schema.sql` > **Run**. It only creates `clear_tasks`, `clear_tags`, `clear_dumps` (with row-level security) and is safe to re-run.
 2. **Authentication > URL Configuration**: add these under **Redirect URLs** (do NOT change **Site URL**, your other app may depend on it):
-   - `https://<github-user>.github.io/<repo>/`
-   - `http://localhost:5173/`
+   - `https://raul-portugal.github.io/clear/**` (generally `https://<github-user>.github.io/<repo>/**`)
+   - `http://localhost:5173/**`
+
+   If the app's URL is missing here, Supabase ignores the app's redirect and sends the link to the **Site URL** instead (by default `http://localhost:3000`, which shows "can't reach this page").
 3. **Project Settings > API**: copy the **Project URL** and the **anon / publishable** key (both are public by design; RLS protects the data).
 
 ## 2. GitHub Pages
@@ -24,4 +26,5 @@ Open the app > **⋯** menu > **Sync** > enter your email > click the link in th
 - Voice recordings stay on the device that made them; text, tasks, tags and brain dumps sync.
 - Conflicts: last write wins per item. Deletes sync as tombstones.
 - Supabase's built-in email is rate-limited (a few links per hour) on the free tier.
+- A link works once and expires after an hour. Requesting a new link invalidates older ones, so always use the newest email. An expired or used link shows "That sign-in link expired" in the app.
 - Free Supabase projects pause after ~1 week of inactivity; resume from the dashboard.

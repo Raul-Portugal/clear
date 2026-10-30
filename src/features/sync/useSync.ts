@@ -5,6 +5,8 @@ import type { RealtimeChannel } from '@supabase/supabase-js';
 import { db } from '../../data/db';
 import { createSyncEngine } from '../../data/sync';
 import { TABLES, createSupabaseRemote, getSupabase, syncConfigured } from '../../data/supabase';
+import { useToast } from '../../ui/Toast';
+import { authLinkError } from './authLink';
 
 export type SyncStatus = 'off' | 'signed-out' | 'syncing' | 'synced' | 'error';
 
@@ -137,6 +139,12 @@ export function useSyncLifecycle(): void {
   useEffect(() => {
     const sb = getSupabase();
     if (!sb) return;
+    // A failed magic link lands here with the error in the hash: say so, and clear it from the address bar.
+    const linkError = authLinkError(window.location.hash);
+    if (linkError) {
+      history.replaceState(null, '', window.location.pathname + window.location.search);
+      useToast.getState().show(linkError);
+    }
     let currentId: string | null = null;
     const apply = (user: { id: string; email?: string } | null) => {
       if (user?.id === currentId) return;

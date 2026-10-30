@@ -5,7 +5,7 @@ The visual goal is **quiet confidence**: a warm light canvas, soft white cards, 
 ## Rules of restraint
 
 1. **One accent color** (iris `--accent`). It is used for the primary action, the active view and focus. Nothing else gets it.
-2. **Two semantic scales, and only these:** urgency is a *warm* scale (amber → apricot → coral), effort is a *cool* scale (mint → blue → violet). Each level has a strong and a `-soft` token. They appear only on pills/rings for fields that are set.
+2. **Two semantic scales, and only these:** urgency is a *warm* scale (amber → apricot → coral), effort is a *cool* scale (mint → blue → violet). Each level has a strong and a `-soft` token. They appear only on pills for fields that are set.
 3. **No borders around task rows.** Rows are soft white cards separated by spacing, with a shadow instead of a border.
 4. **Icons are 20px, 1.5px stroke, monochrome**, from a single set (Lucide). They never appear beside text that already says the same thing.
 5. **Metadata is muted and small.** It sits on one line under the title, and only when the fields are set: `Fri · #work · 2/5`.
@@ -48,7 +48,7 @@ Tag colors come from a fixed palette of 8 desaturated hues, with variants tested
 └────────────────────────────────────────────────────────────┘
 ```
 - Each row is a white card (`--surface`, `--shadow-xs`, `--radius`).
-- **Urgency** at a glance: the checkbox ring and fill take the urgency color, plus a pill with a dot and `Low / Med / High`.
+- **Urgency** at a glance: a pill with a dot and `Low / Med / High`. The checkbox stays neutral.
 - **Effort** at a glance: a pill with a three-bar meter (1 bar quick, 3 bars deep) and its label. Below 480px the label hides and only the meter shows.
 - On hover (mouse), a grip appears left of the card for drag-to-reorder.
 - Touch target ≥ 44px. The checkbox hit area covers the whole left 48px.

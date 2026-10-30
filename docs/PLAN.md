@@ -9,7 +9,7 @@ Legend: `[ ]` todo · `[~]` in progress · `[x]` done · `[-]` parked
 ## Phase 0 — Foundation
 Goal: an empty app shell that looks right on phone and laptop and installs as a PWA.
 
-- [ ] Resolve the open decisions — defaults adopted; see HANDOFF in HANDOFF.md (stack, sync, AI)
+- [x] Resolve the open decisions — see "Decisions" in HANDOFF.md
 - [x] `git init`, add `.gitignore`, scaffold Vite + React + TS (strict), ESLint + Prettier
 - [x] Install the core dependencies (see ARCHITECTURE.md)
 - [x] `src/styles/tokens.css` + `global.css` from DESIGN.md, with light and dark themes
@@ -25,7 +25,7 @@ Goal: an empty app shell that looks right on phone and laptop and installs as a 
 Goal: a fully working basic to-do list that persists offline.
 
 - [x] `domain/types.ts` holding the data model from ARCHITECTURE.md
-- [x] Dexie schema with `tasks`, `tags` and `drafts` tables, plus repository functions (create, update, complete, softDelete, reorder)
+- [x] Dexie schema with `tasks`, `tags` and `dumps` tables (drafts were replaced by dumps), plus repository functions (create, update, complete, softDelete, reorder)
 - [x] Undo stack in the repository layer, wired to the toast and `⌘Z`
 - [x] `TaskList` + `TaskRow` (anatomy from DESIGN.md) with layout animations
 - [x] Quick add, plain title only for now
@@ -54,7 +54,7 @@ Goal: a fully working basic to-do list that persists offline.
 - [x] Pull-to-search; long-press **+** to open voice (stub until Phase 5)
 - [x] Keyboard shortcuts (SPEC §6), the `?` cheat sheet, and the `⌘K` command palette
 - [x] Reduced-motion support, focus rings, ARIA labels, and screen-reader alternatives for every gesture
-- [ ] Test on a real phone — needs a physical device (iOS Safari + Android Chrome) via `vite --host` / an HTTPS tunnel
+- [ ] Test on a real phone (iOS Safari + Android Chrome) — use the live Pages URL
 
 **Done when:** the full task lifecycle works with gestures alone on a phone and with the keyboard alone on a laptop.
 
@@ -90,17 +90,18 @@ Goal: a fully working basic to-do list that persists offline.
 - [x] Row tap opens details; subtasks share the task-row look and gestures; no urgency tint on the checkbox
 
 ## Phase 6 — Sync across devices
-- [ ] Auth (email magic link)
-- [ ] Remote schema mirroring Task and Tag; row-level security
-- [~] Sync engine: push and pull by `updatedAt`, LWW per task, tombstones, a background retry queue — engine + merge done against a `RemoteStore` interface; no Supabase adapter yet
-- [ ] Realtime updates when the app is open on both devices
+- [~] Auth (email magic link) — built and deployed; first real sign-in failed because the Pages URL was not in Supabase's Redirect URLs (see SETUP.md)
+- [x] Remote schema mirroring Task, Tag and Dump; row-level security (`supabase/schema.sql`, applied)
+- [x] Sync engine: push and pull by `updatedAt`, LWW per task, tombstones, retry — plus the Supabase adapter
+- [~] Realtime updates when the app is open on both devices — built, untested on real devices
+- [ ] Verify end to end on laptop + phone: edit on one, appears on the other; offline edits merge on reconnect
 - [x] Export and import JSON (also serves as a backup)
 
 **Done when:** a task edited on the laptop appears on the phone within seconds, and offline edits merge on reconnect.
 
 ## Phase 6.5 — Visual refresh (2026-10-29)
 - [x] Light-first theme: warm canvas, white cards, iris accent; dark/system as a menu setting
-- [x] Color-coded urgency (warm) and effort (cool) pills on every row, urgency-tinted checkbox
+- [x] Color-coded urgency (warm) and effort (cool) pills on every row (the urgency-tinted checkbox was later removed)
 - [x] Compact task detail: property list with segmented pills, date presets, inline tag adding, waiting switch, draggable subtasks
 - [x] Nav with icons and counts; card-style quick add; pill toasts with Undo
 
@@ -108,7 +109,11 @@ Goal: a fully working basic to-do list that persists offline.
 - [x] Onboarding: 3 sample tasks that teach the gestures (deletable)
 - [x] Performance pass: `content-visibility` on rows instead of virtualization; main bundle ~190KB gzip
 - [ ] Accessibility audit (axe plus manual VoiceOver/TalkBack)
-- [ ] Deploy (Vercel / Netlify / Cloudflare Pages) with a custom domain
+- [x] Deploy: GitHub Pages at https://raul-portugal.github.io/clear/ (auto on push to `main`)
+- [ ] Optional custom domain
+- [ ] Lighthouse PWA check, real app icons
+- [ ] Code-split Supabase and brain dump/voice (main chunk is 538 KB, over Vite's warning)
+- [ ] Remove the client's `smartOrganize` setting and `/api/parse-dump` call
 
 ## Later / v2 candidates
 Recurring tasks · reminders/notifications · calendar view · Capacitor native builds · shared lists · widgets.

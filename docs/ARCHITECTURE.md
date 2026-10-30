@@ -15,7 +15,8 @@
 | PWA | `vite-plugin-pwa` (Workbox) | Service worker, manifest, offline caching. |
 | Tests | Vitest + Testing Library, Playwright (desktop + mobile viewport projects) | |
 | AI parsing | **Parked.** A serverless prototype stays in `api/`, but the app never calls it | Product decision: no features that need API keys. Brain dump uses the local splitter only. |
-| Sync (Phase 6) | Supabase (Postgres + Auth + Realtime) **or** similar | See the open decision in HANDOFF.md. |
+| Sync (Phase 6) | Supabase (Postgres + Auth magic link + Realtime), optional | Hidden unless `VITE_SUPABASE_*` are set. Setup in `docs/SETUP.md`, schema in `supabase/schema.sql`. |
+| Hosting | GitHub Pages via `.github/workflows/deploy.yml` | Free, HTTPS (needed for the mic). Served under `/clear/` (`VITE_BASE`). |
 
 ## Folder layout
 
@@ -27,7 +28,7 @@ src/
     capture/      # QuickAdd, BrainDump, Review, voice
     filters/      # tag filter, sort, search
   domain/         # pure TS: types, sorting, smart-syntax parser, brain-dump splitter (no React, 100% unit-tested)
-  data/           # Dexie db, repositories, (later) sync engine
+  data/           # Dexie db, repositories, sync engine, Supabase adapter
   ui/             # design-system primitives: Button, Sheet, Chip, Toast, Checkbox, SwipeRow
   hooks/          # useKeyboardShortcuts, useUndo, useMediaQuery, useHaptics
   styles/         # tokens.css, global.css
@@ -80,9 +81,9 @@ Subtasks are embedded in their parent task because they are only one level deep 
 
 **Brain dump:**
 1. `domain/splitDump(text)` is a local, deterministic splitter. It handles lines, bullets and sentence boundaries, and runs `parseQuickAdd` on each piece. This always works offline.
-2. When AI parsing is enabled and online, the client calls `POST /api/parse-dump { text, tags, today }` and gets back `{ tasks: ProposedTask[] }`, validated with zod. The server uses Claude tool use / structured output so it always gets JSON that matches the schema. If the call fails, the client falls back to step 1.
+2. (Parked; the app never enables it.) When AI parsing is enabled and online, the client calls `POST /api/parse-dump { text, tags, today }` and gets back `{ tasks: ProposedTask[] }`, validated with zod. The server uses Claude tool use / structured output so it always gets JSON that matches the schema. If the call fails, the client falls back to step 1.
 3. The review UI edits `ProposedTask[]`, and committing writes them in a single transaction.
 
 **Voice** (`hooks/useVoice.ts`): `MediaRecorder` records the original audio and owns the session: only the user stops it. Where the Web Speech API exists, recognition runs alongside and is restarted whenever the browser ends it (silence, Android's limit), giving up after 3 failed sessions while the recording continues. It is handed the recorder's mic track where Chrome supports that. Results are rebuilt per event and collapsed with `domain/transcript.ts` (Android sends cumulative and repeated results), and only new words are appended. Server transcription (`/api/transcribe`) is parked: it needs an API key.
 
-**Sync (Phase 6):** local-first. Dexie stays the source of truth for the UI. A sync engine pushes changed rows (by `updatedAt`) and pulls remote changes. Conflicts are resolved with last-write-wins per task. Soft deletes act as tombstones.
+**Sync (Phase 6):** local-first. Dexie stays the source of truth for the UI. A sync engine pushes changed rows (by `updatedAt`) and pulls remote changes. Conflicts are resolved with last-write-wins per task. Soft deletes act as tombstones. `data/supabase.ts` is the remote adapter (tables `clear_tasks/tags/dumps`, keyed by `user_id,id`, row-level security); `features/sync/useSync.ts` follows the auth session and syncs on start, on focus/online, after local changes (debounced) and on Realtime events. Voice audio does not sync.

@@ -22,7 +22,7 @@ These settle disagreements. When a feature conflicts with a principle, the princ
 | Notes | Optional, multi-line, plain text with auto-linked URLs. |
 | Subtasks | **One level only**, so there are no trees to manage. Each has a title and a done state. The parent shows progress as `2/5`. |
 | Due date | Optional. Date with an optional time. Entered in natural language ("fri", "in 3 days", "tomorrow 9am"). |
-| Urgency | `none · low · medium · high`. Default `none`. When set, it shows on the row as a color-coded pill (warm scale) and tints the checkbox ring. |
+| Urgency | `none · low · medium · high`. Default `none`. When set, it shows on the row as a color-coded pill (warm scale). |
 | Effort (difficulty) | `quick · medium · deep`. Default unset. Named "effort" in the UI because "difficulty" sounds judgmental and effort is easier to act on ("quick wins"). |
 | Tags | Zero or more. Lowercase, `#tag` syntax. Each tag gets an auto-assigned muted color the user can change. |
 | Status | `open · waiting · done`. |
@@ -100,12 +100,11 @@ A mic button inside the brain dump (tap to start/stop, or hold to talk), plus a 
 ### Mobile gestures
 | Gesture | Action |
 |---|---|
-| Tap task | Expand inline (subtasks + quick fields) |
+| Tap task | Open the detail sheet. A task with subtasks expands them inline on the first tap; the second tap opens details |
 | Tap checkbox | Complete (with satisfying micro-animation + undo toast) |
 | Swipe right | Complete |
 | Swipe left | Delete (undo toast) |
 | Long-press + drag | Reorder (switches sort to Manual, with an undo toast saying so) |
-| Long-press task (no drag) | Open full detail sheet |
 | Pull down on list | Search |
 | Tap **+** | Quick add |
 | Long-press **+** | Voice brain dump |
@@ -150,4 +149,4 @@ Each of these is deliberately left out to keep the app clean. Any of them can be
 - All interactions run at 60fps, and swipes track the finger exactly.
 - WCAG AA contrast. Fully keyboard-operable. Screen-reader labels on all gesture actions. Respects `prefers-reduced-motion`.
 - Light theme by default; dark and "follow system" are a setting in the ⋯ menu.
-- No feature may require an API key (AI organizing and server transcription are parked).
+- No feature may require an API key (AI organizing and server transcription are parked). The one exception is optional sync: it uses a public Supabase key, is hidden unless configured, and the app works fully without it.
