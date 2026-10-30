@@ -69,3 +69,12 @@ describe('addSubtask', () => {
     expect((await db.tasks.get(t.id))?.subtasks.map((s) => s.title)).toEqual(['a', 'b', 'c']);
   });
 });
+
+describe('addTaskTag', () => {
+  it('keeps every tag when adds overlap, and skips duplicates', async () => {
+    const t = await createTask({ title: 'x' });
+    const { addTaskTag } = await import('./repo');
+    await Promise.all(['a', 'b', 'a'].map((id) => addTaskTag(t.id, id)));
+    expect((await db.tasks.get(t.id))?.tagIds).toEqual(['a', 'b']);
+  });
+});

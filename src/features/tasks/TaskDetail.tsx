@@ -8,7 +8,7 @@ import { Bars } from '../../ui/Bars';
 import { Checkbox } from '../../ui/Checkbox';
 import { SwipeRow } from '../../ui/SwipeRow';
 import { useSortable, type Sortable } from '../../hooks/useSortable';
-import { addSubtask, setSubtasks, setWaiting, updateTask } from '../../data/repo';
+import { addSubtask, addTaskTag, setSubtasks, setWaiting, updateTask } from '../../data/repo';
 import { ensureTag, ensureTags } from '../../data/tags';
 import { parseQuickAdd } from '../../domain/parseQuickAdd';
 import { SubtaskPills } from './SubtaskPills';
@@ -174,6 +174,7 @@ function SubtaskRow({ task, s, dragging, sortable }: { task: Task; s: Subtask; d
             className={`${styles.subTitle} ${s.done ? styles.struck : ''}`}
             value={title}
             aria-label={`Subtask ${s.title}`}
+            enterKeyHint="done"
             onChange={(e) => setTitle(e.target.value)}
             onKeyDown={(e) => {
               if (e.key === 'Enter') e.currentTarget.blur();
@@ -256,6 +257,13 @@ function Body({ task }: { task: Task }) {
       { tagIds: task.tagIds.includes(id) ? task.tagIds.filter((x) => x !== id) : [...task.tagIds, id] },
       'Tags changed',
     );
+  // Adds the typed tag. Runs on Enter, on a space/comma, and on blur, because Android keyboards may
+  // show Next (moves focus, no Enter) instead of Enter.
+  const commitTag = (name: string) => {
+    const clean = name.trim().replace(/^#/, '');
+    if (!clean) return;
+    void ensureTag(clean).then((t) => addTaskTag(task.id, t.id));
+  };
   const own = tags.filter((t) => task.tagIds.includes(t.id));
   const others = tags.filter((t) => !task.tagIds.includes(t.id));
 
@@ -366,14 +374,30 @@ function Body({ task }: { task: Task }) {
                 value={tag}
                 placeholder="tag name"
                 aria-label="New tag"
-                onChange={(e) => setTag(e.target.value)}
-                onBlur={() => !tag && setAddingTag(false)}
-                onKeyDown={async (e) => {
-                  if (e.key === 'Escape') setAddingTag(false);
-                  if (e.key === 'Enter' && tag.trim()) {
-                    const t = await ensureTag(tag);
+                enterKeyHint="done"
+                autoCapitalize="none"
+                onChange={(e) => {
+                  const v = e.target.value;
+                  // A tag is one word: a space or comma finishes it and starts the next.
+                  if (/[\s,]$/.test(v)) {
+                    commitTag(v.replace(/[\s,]+$/, ''));
                     setTag('');
-                    if (!task.tagIds.includes(t.id)) toggleTag(t.id);
+                  } else setTag(v);
+                }}
+                onBlur={() => {
+                  commitTag(tag);
+                  setTag('');
+                  setAddingTag(false);
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Escape') {
+                    setTag('');
+                    setAddingTag(false);
+                  }
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    commitTag(tag);
+                    setTag('');
                   }
                 }}
               />
@@ -384,7 +408,8 @@ function Body({ task }: { task: Task }) {
             )}
           </div>
           {addingTag && others.length > 0 && (
-            <div className={styles.inline}>
+            // Keep focus in the tag field, or its blur would close these chips before the tap lands.
+            <div className={styles.inline} onMouseDown={(e) => e.preventDefault()}>
               {others.map((t) => (
                 <Chip key={t.id} color={tagColor(t.color)} onClick={() => toggleTag(t.id)}>
                   #{t.name}
@@ -469,6 +494,7 @@ function Body({ task }: { task: Task }) {
             value={sub}
             placeholder="Add subtask (fri !high #tag)"
             aria-label="Add subtask"
+            enterKeyHint="enter"
             onChange={(e) => setSub(e.target.value)}
             onKeyDown={(e) => {
               if (e.key === 'Enter' && sub.trim()) {

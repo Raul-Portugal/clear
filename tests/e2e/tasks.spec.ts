@@ -119,3 +119,30 @@ test('mobile quick add opens in place atop the list and closes when left empty',
   await page.locator('h1').click();
   await expect(input).toHaveCount(0);
 });
+
+test('tags in detail: space, Enter and leaving the field all add the typed tag', async ({ page }) => {
+  await page.goto('/');
+  await addTask(page, 'Water plants');
+  await expect(page.getByRole('status')).toHaveText(/Added/);
+  await page.keyboard.press('Escape');
+  await page.getByRole('button', { name: 'Water plants' }).click();
+  const dialog = page.getByRole('dialog');
+
+  await dialog.getByRole('button', { name: 'Add tag' }).click();
+  const input = dialog.getByLabel('New tag');
+  await expect(input).toHaveAttribute('enterkeyhint', 'done');
+  await input.pressSequentially('home ');
+  await expect(input).toHaveValue('');
+  await input.fill('garden');
+  await input.press('Enter');
+  // Android's "Next" key moves focus without sending Enter: the typed tag must still land.
+  await input.fill('weekly');
+  await dialog.getByLabel('Add subtask').focus();
+
+  for (const name of ['home', 'garden', 'weekly']) await expect(dialog.getByText(`#${name}`, { exact: true })).toBeVisible();
+  // An existing tag offered as a suggestion can be tapped while the field is open.
+  await dialog.getByRole('button', { name: 'Remove' }).last().click(); // removes #weekly, the last one added
+  await dialog.getByRole('button', { name: 'Add tag' }).click();
+  await dialog.getByRole('button', { name: '#weekly', pressed: false }).click();
+  await expect(dialog.getByRole('button', { name: '#weekly', pressed: true })).toBeVisible();
+});

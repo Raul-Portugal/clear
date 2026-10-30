@@ -213,6 +213,7 @@ function Palette() {
         className={styles.input}
         placeholder="Type a command or task"
         aria-label="Command"
+        enterKeyHint="go"
         value={q}
         onChange={(e) => {
           setQ(e.target.value);

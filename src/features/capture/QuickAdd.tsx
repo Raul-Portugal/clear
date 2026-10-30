@@ -81,6 +81,7 @@ function QuickInput({ autoFocus, onDismiss }: { autoFocus?: boolean; onDismiss?:
           value={text}
           placeholder="Add a task"
           aria-label="Add a task"
+          enterKeyHint="enter"
           onChange={(e) => setText(e.target.value)}
           onKeyDown={(e) => {
             if (e.key === 'Enter') void submit();

@@ -142,6 +142,19 @@ export function addSubtask(id: string, title: string, extra: Partial<Omit<Subtas
   return next;
 }
 
+let tagQueue: Promise<unknown> = Promise.resolve();
+
+/** Adds a tag to the stored task (no-op if present). Serialized like addSubtask, so tags typed in quick succession all land. */
+export function addTaskTag(id: string, tagId: string): Promise<void> {
+  const run = async () => {
+    const t = await db.tasks.get(id);
+    if (t && !t.tagIds.includes(tagId)) await updateTask(id, { tagIds: [...t.tagIds, tagId] }, 'Tags changed');
+  };
+  const next = tagQueue.then(run, run);
+  tagQueue = next.catch(() => undefined);
+  return next;
+}
+
 export function newSubtask(title: string): Subtask {
   return { id: uuid(), title, done: false };
 }

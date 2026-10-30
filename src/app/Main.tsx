@@ -115,6 +115,7 @@ export function Main() {
           value={search}
           placeholder="Search"
           aria-label="Search tasks"
+          enterKeyHint="search"
           onChange={(e) => setSearch(e.target.value)}
           onKeyDown={(e) => {
             if (e.key === 'Escape') {

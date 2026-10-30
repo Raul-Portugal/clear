@@ -3,11 +3,13 @@
 _Last updated: 2026-10-30_
 
 ## Current state
-Phases 0–5.6 and the visual refresh (6.5) are built. **Live at https://raul-portugal.github.io/clear/**: GitHub Pages deploys on every push to `main` (`.github/workflows/deploy.yml` runs the tests first). `typecheck`, `lint`, `test` (135 unit) and `build` pass; e2e last passed with 36 run and 8 skipped (mouse-only, touch-only or phone-only).
+Phases 0–5.6 and the visual refresh (6.5) are built. **Live at https://raul-portugal.github.io/clear/**: GitHub Pages deploys on every push to `main` (`.github/workflows/deploy.yml` runs the tests first). `typecheck`, `lint`, `test` (136 unit) and `build` pass; e2e: 38 pass, 8 skipped (mouse-only, touch-only or phone-only).
 
 **Sync (Phase 6) works:** magic-link sign-in on the live site is confirmed by the owner (the Pages URL had to be added to Supabase's Redirect URLs). A failed link now shows a toast and clears the hash (`features/sync/authLink.ts`).
 
-**Latest: voice recordings sync too.** They go to a private Supabase Storage bucket, `clear-audio` (`<user_id>/<audio id>`, RLS). Dexie v5 adds indexed `pendingUpload`/`pendingDelete` flags on `audio`; the upgrade queues existing recordings for upload. `syncAudio` runs after the table sync and downloads the clips that Inbox dumps need, and `ClipPlayer` picks them up live. **Owner action:** re-run `supabase/schema.sql` to create the bucket. Until then sync shows "Offline or sync failed", because uploads error (tasks still sync, since their cursors are saved first). Not yet tried on real devices.
+**Latest: tags in task detail on Android.** Android's keyboard showed Next instead of Enter on the tag field (another input follows it), so a typed tag was never added. Single-line inputs now set `enterKeyHint`. The tag field also saves on blur and on a space or comma, so Next works too. `repo.addTaskTag` serializes adds, and tapping a suggested tag no longer gets lost to the blur. Owner to confirm on the Redmi.
+
+**Voice recordings sync too.** They go to a private Supabase Storage bucket, `clear-audio` (`<user_id>/<audio id>`, RLS). Dexie v5 adds indexed `pendingUpload`/`pendingDelete` flags on `audio`; the upgrade queues existing recordings for upload. `syncAudio` runs after the table sync and downloads the clips that Inbox dumps need, and `ClipPlayer` picks them up live. The bucket SQL has been run by the owner. Not yet tried on real devices.
 
 What exists, briefly:
 - **Capture:** inline quick add with smart syntax; brain dump saved to an **Inbox** (several dumps, reopen/edit/delete, Organize later through a review screen); voice records the original audio until the user stops it, with a live transcript where Web Speech exists (recognition restarts under the recording on Android) and a Voice language setting.
@@ -32,6 +34,7 @@ PWA · light theme default · GitHub Pages hosting · name "Clear" · subtasks o
 The ⋯ menu holds sort, theme, voice language, sync, Done, tags and backup, keeping the main UI bare.
 
 ## Gotchas
+- Android shows **Next** (moves focus, no Enter keydown) on an input with no `enterKeyHint` when another input follows it. Give every Enter-driven input an `enterKeyHint`, and save on blur where losing typed text would hurt.
 - Package majors are newer than the docs assume (React 19, Vite 8, Vitest 5, motion 14, zod 4, vite-plugin-pwa 2).
 - `chrono-node/en` is imported (not the root) to keep the bundle small.
 - e2e tests set `clear-onboarded` via `tests/e2e/fixtures.ts`. Wait for the toast before reloading, since writes are async.
