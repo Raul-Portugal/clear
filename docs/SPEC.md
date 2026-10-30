@@ -88,6 +88,9 @@ A key feature, so it is one tap from the main screen: a **Brain dump** button si
 
 ### 5.3 Voice note
 A mic button inside the brain dump (tap to start/stop, or hold to talk), plus a long-press on the **+** FAB on mobile.
+- A recording lasts until the user stops it, however long that is. A quiet timer shows it is still going, and the screen is kept awake while recording.
+- On a phone the brain dump opens **without the keyboard**: an empty page ("Tap to write, or use the mic") with a large mic centered at the bottom, so writing or speaking is one tap either way. Once typing, the bottom row (Organize · mic · Done) stays visible above the keyboard. Starting a recording dismisses the keyboard.
+- The transcript language is a setting in the ⋯ menu (**Voice language**, default: device language).
 - The **original audio is always recorded and kept** with the dump, with a player to listen back and a remove button. Several recordings can be added to one dump.
 - Where the browser supports speech recognition, a live transcript is written into the text area. It is editable because transcripts can be wrong, and the audio is right beside it to check against. Where it does not, the recording is still kept and the user can type or just listen.
 - Organizing a dump attaches its first recording to the tasks created from it.

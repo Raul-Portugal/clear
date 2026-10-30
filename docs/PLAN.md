@@ -81,6 +81,12 @@ Goal: a fully working basic to-do list that persists offline.
 - [x] Dumps are saved without organizing; several can wait; reopen, edit, delete with undo
 - [x] Organize later from the editor or an Inbox card, through the review screen
 - [x] Voice always records the original audio, with playback beside the (editable) transcript
+
+## Phase 5.6 — Voice fixes (user feedback, Android)
+- [x] Recording lasts until the user stops it (it used to end when Android ended speech recognition after ~5s); recognition restarts underneath; wake lock; elapsed timer
+- [x] Transcript without Android's repeated words (`domain/transcript.ts`), shared mic track where Chrome supports it, Voice language setting
+- [x] Phone brain dump opens without the keyboard; big mic in thumb reach; bottom row sized to the visible area above the keyboard
+- [ ] Confirm on a real Android phone (Redmi, Chrome) and iOS Safari
 - [x] Row tap opens details; subtasks share the task-row look and gestures; no urgency tint on the checkbox
 
 ## Phase 6 — Sync across devices

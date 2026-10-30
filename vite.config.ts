@@ -6,6 +6,8 @@ import { VitePWA } from 'vite-plugin-pwa';
 export default defineConfig({
   // GitHub Pages serves project sites from /<repo>/; CI sets VITE_BASE, local dev stays at /
   base: process.env.VITE_BASE ?? '/',
+  // phone testing over an HTTPS tunnel (`cloudflared tunnel --url http://localhost:5173`); the mic needs HTTPS
+  server: { allowedHosts: ['.trycloudflare.com'] },
   plugins: [
     react(),
     VitePWA({

@@ -3,7 +3,7 @@ import { Sheet } from '../../ui/Sheet';
 import { Chip } from '../../ui/Chip';
 import { useView } from '../../app/views';
 import type { SortMode } from '../../domain/sort';
-import { useSettings, type Theme } from '../../app/settings';
+import { useSettings, VOICE_LANGS, type Theme } from '../../app/settings';
 import { Segmented } from '../../ui/Segmented';
 import { useToast } from '../../ui/Toast';
 import { TagSettings } from './TagSettings';
@@ -28,7 +28,8 @@ interface Props {
 export function ViewMenu({ open, onClose }: Props) {
   const { view, setView, sort, setSort, reverseEffort, toggleReverseEffort, tagFilter, setTagFilter } = useView();
   const tags = useTags();
-  const { theme, setTheme } = useSettings();
+  const { theme, setTheme, voiceLang, setVoiceLang } = useSettings();
+  const voice = typeof window !== 'undefined' && (!!navigator.mediaDevices || 'webkitSpeechRecognition' in window);
   const [page, setPage] = useState<'main' | 'tags'>('main');
   const current = sort[view] ?? 'smart';
   const selected = tagFilter[view] ?? [];
@@ -93,6 +94,23 @@ export function ViewMenu({ open, onClose }: Props) {
               ]}
             />
           </section>
+          {voice && (
+            <section aria-label="Voice language">
+              <h2 className={styles.h}>Voice language</h2>
+              <select
+                className={styles.select}
+                aria-label="Voice language"
+                value={voiceLang}
+                onChange={(e) => setVoiceLang(e.target.value)}
+              >
+                {VOICE_LANGS.map((l) => (
+                  <option key={l.value} value={l.value}>
+                    {l.label}
+                  </option>
+                ))}
+              </select>
+            </section>
+          )}
           <SyncSection />
           <section className={styles.links}>
             <button

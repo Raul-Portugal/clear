@@ -1,6 +1,6 @@
 .body { flex: 1; display: flex; flex-direction: column; gap: var(--s4); min-height: 60dvh; }
-@media (max-width: 1023px) { .body { min-height: 0; } }
 .area { flex: 1; min-height: 40dvh; border: 0; background: transparent; resize: none; outline: none; font-size: var(--fs-title); line-height: 1.5; }
+@media (max-width: 1023px) { .body { min-height: 0; } .area { min-height: 6rem; } }
 .actions { display: flex; justify-content: flex-end; gap: var(--s2); }
 .hint { font-size: var(--fs-meta); color: var(--text-muted); }
 .cards { margin: 0; padding: 0; display: flex; flex-direction: column; }
@@ -12,7 +12,20 @@
 .meta { font-size: var(--fs-meta); color: var(--text-muted); }
 .rec { display: flex; align-items: center; gap: var(--s3); font-size: var(--fs-meta); color: var(--text-muted); }
 .mic { margin-right: auto; min-width: var(--tap); min-height: var(--tap); display: grid; place-items: center; border-radius: 50%; color: var(--text-muted); touch-action: none; }
-.live { color: var(--accent-contrast); background: var(--accent); }
+.on { color: var(--accent-contrast); background: var(--accent); }
+.time { font-variant-numeric: tabular-nums; color: var(--text); flex: none; }
+.live { min-width: 0; }
+/* phones: Organize · big mic · Done, in thumb reach; the row rides above the keyboard (Sheet full) */
+.thumb { display: grid; grid-template-columns: 1fr auto 1fr; }
+.thumb > :nth-last-child(2) { grid-column: 1; grid-row: 1; justify-self: start; }
+.thumb > :last-child { grid-column: 3; grid-row: 1; justify-self: end; }
+.thumb .mic {
+  grid-column: 2; grid-row: 1; margin: 0; width: calc(var(--tap) * 1.5); height: calc(var(--tap) * 1.5);
+  background: var(--accent-soft); color: var(--accent);
+  transition: transform var(--dur) var(--spring), background var(--dur) var(--spring);
+}
+.thumb .mic:active { transform: scale(0.94); }
+.thumb .on { color: var(--accent-contrast); background: var(--accent); }
 .wave { display: inline-flex; gap: 2px; align-items: center; height: 16px; }
 .wave i { width: 3px; height: 100%; background: var(--accent); border-radius: 2px; animation: bar 0.9s ease-in-out infinite; }
 .wave i:nth-child(2) { animation-delay: 0.15s; } .wave i:nth-child(3) { animation-delay: 0.3s; } .wave i:nth-child(4) { animation-delay: 0.45s; }

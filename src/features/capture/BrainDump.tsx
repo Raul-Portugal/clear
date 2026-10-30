@@ -5,6 +5,9 @@ import { Button } from '../../ui/Button';
 import { addClip, createDump, discardIfEmpty, organizeDump, removeClip, updateDumpText } from '../../data/dumps';
 import { useVoice } from '../../hooks/useVoice';
 import { formatDue } from '../../domain/dates';
+import { appendText, formatElapsed } from '../../domain/transcript';
+import { useSettings } from '../../app/settings';
+import { useIsDesktop } from '../../hooks/useMediaQuery';
 import type { ProposedTask } from '../../domain/proposed';
 import { useTags } from '../filters/useTags';
 import { toastWithUndo, useUi } from '../tasks/actions';
@@ -31,6 +34,16 @@ function metaOf(p: ProposedTask): string {
   return bits.join(' · ');
 }
 
+/** A quiet m:ss next to the waveform, so a long recording visibly keeps going. */
+function Elapsed({ since }: { since: number }) {
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const t = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(t);
+  }, []);
+  return <span className={styles.time}>{formatElapsed(now - since)}</span>;
+}
+
 /**
  * The editor always edits a saved dump: text autosaves, recordings are stored as soon as they
  * stop, and closing keeps everything in the Inbox. Organizing into tasks is optional.
@@ -49,26 +62,34 @@ function Editor({ initialId, onClose }: { initialId: string | null; onClose: () 
   const wasListening = useRef(false);
   const autoListen = useUi((s) => s.autoListen);
   const textRef = useRef('');
+  const desktop = useIsDesktop();
+  const voiceLang = useSettings((s) => s.voiceLang);
 
-  /** Creates the dump record the first time there is something to keep. */
-  async function ensureId(): Promise<string> {
-    if (idRef.current) return idRef.current;
-    const d = await createDump(textRef.current);
-    idRef.current = d.id;
-    setId(d.id);
-    return d.id;
+  const creating = useRef<Promise<string> | null>(null);
+  const recorded = useRef(false);
+  /** Creates the dump record the first time there is something to keep (once, even if asked twice at once). */
+  function ensureId(): Promise<string> {
+    if (idRef.current) return Promise.resolve(idRef.current);
+    creating.current ??= createDump(textRef.current).then((d) => {
+      idRef.current = d.id;
+      setId(d.id);
+      return d.id;
+    });
+    return creating.current;
   }
 
   const voice = useVoice({
     onFinal: (t) =>
       setText((cur) => {
-        const next = (cur && !/\s$/.test(cur) ? cur + ' ' : cur) + t;
+        const next = appendText(cur, t);
         textRef.current = next;
         return next;
       }),
     onAudio: (blob) => {
+      recorded.current = true;
       void ensureId().then((dumpId) => addClip(dumpId, blob));
     },
+    lang: voiceLang,
   });
   const startVoice = voice.start;
   const listeningRef = useRef(false);
@@ -84,7 +105,8 @@ function Editor({ initialId, onClose }: { initialId: string | null; onClose: () 
   }, [dump]);
   useEffect(() => {
     if (!initialId) loaded.current = true;
-    ref.current?.focus({ preventScroll: true }); // the page must not scroll to chase the field while the sheet opens
+    // phones open without the keyboard, so the choice between writing and the mic stays in view
+    if (window.matchMedia('(min-width: 1024px)').matches) ref.current?.focus({ preventScroll: true }); // no scroll chasing the field while the sheet opens
   }, [initialId]);
 
   useEffect(() => {
@@ -124,7 +146,7 @@ function Editor({ initialId, onClose }: { initialId: string | null; onClose: () 
       if (!loaded.current) return;
       const t = textRef.current;
       if (!idRef.current) {
-        if (t.trim()) void createDump(t).then((d) => (idRef.current = d.id));
+        if (t.trim() || creating.current) void ensureId().then((dumpId) => updateDumpText(dumpId, t));
         return;
       }
       const dumpId = idRef.current;
@@ -141,9 +163,9 @@ function Editor({ initialId, onClose }: { initialId: string | null; onClose: () 
   }
 
   async function finish() {
-    if (voice.state === 'listening') voice.stop();
+    await voice.stop(); // the last words and the audio land before saving
     const dumpId = await flush();
-    if (dumpId && (textRef.current.trim() || (dump?.audioIds.length ?? 0) > 0)) useToast.getState().show('Saved to Inbox');
+    if (dumpId && (textRef.current.trim() || recorded.current || (dump?.audioIds.length ?? 0) > 0)) useToast.getState().show('Saved to Inbox');
     onClose();
   }
 
@@ -234,7 +256,9 @@ function Editor({ initialId, onClose }: { initialId: string | null; onClose: () 
         ref={ref}
         className={styles.area}
         value={text}
-        placeholder="Write or say everything on your mind. Sort it out later."
+        placeholder={
+          desktop ? 'Write or say everything on your mind. Sort it out later.' : 'Tap to write, or use the mic. Sort it out later.'
+        }
         aria-label="Brain dump"
         onChange={(e) => setText(e.target.value)}
       />
@@ -258,7 +282,8 @@ function Editor({ initialId, onClose }: { initialId: string | null; onClose: () 
             <i />
             <i />
           </span>
-          {voice.interim || 'Listening…'}
+          <Elapsed since={voice.startedAt} />
+          <span className={styles.live}>{voice.interim || 'Listening…'}</span>
         </p>
       )}
       {voice.notice && <p className={styles.hint}>{voice.notice}</p>}
@@ -267,32 +292,35 @@ function Editor({ initialId, onClose }: { initialId: string | null; onClose: () 
           {voice.error}
         </p>
       )}
-      <div className={styles.actions}>
+      <div className={`${styles.actions} ${desktop ? '' : styles.thumb}`}>
         {voice.supported && (
           <button
             type="button"
-            className={`${styles.mic} ${voice.state === 'listening' ? styles.live : ''}`}
+            className={`${styles.mic} ${voice.state === 'listening' ? styles.on : ''}`}
             aria-label={voice.state === 'listening' ? 'Stop recording' : 'Record voice'}
             aria-pressed={voice.state === 'listening'}
             onPointerDown={(e) => {
               if (e.pointerType === 'mouse' && e.button !== 0) return;
               wasListening.current = voice.state === 'listening';
               held.current = Date.now();
-              if (voice.state === 'idle') void voice.start();
+              if (voice.state === 'idle') {
+                if (!desktop) ref.current?.blur(); // drop the keyboard so the recording is in view
+                void voice.start();
+              }
             }}
             onPointerUp={() => {
-              // hold-to-talk: releasing after a long press stops; a quick tap keeps recording
-              if (!wasListening.current && Date.now() - held.current > 400 && voice.state === 'listening') voice.stop();
+              // hold-to-talk: releasing a clear hold stops; a tap (even a slow one) keeps recording
+              if (!wasListening.current && Date.now() - held.current > 600 && voice.state === 'listening') void voice.stop();
             }}
             onClick={(e) => {
               // detail 0 = keyboard activation (toggle); otherwise a tap on an already-running recording stops it
               if (e.detail === 0) {
-                if (voice.state === 'listening') voice.stop();
+                if (voice.state === 'listening') void voice.stop();
                 else void voice.start();
-              } else if (wasListening.current) voice.stop();
+              } else if (wasListening.current) void voice.stop();
             }}
           >
-            <Mic size={20} strokeWidth={1.5} />
+            <Mic size={desktop ? 20 : 28} strokeWidth={1.5} />
           </button>
         )}
         <Button disabled={!text.trim() || busy} onClick={() => void run()}>

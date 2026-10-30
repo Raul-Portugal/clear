@@ -3,7 +3,14 @@
 _Last updated: 2026-10-30_
 
 ## Current state
-Phases 0–5 built, plus a **visual refresh** (PLAN "Phase 6.5"). `typecheck`, `lint`, `test` (114 unit) and `test:e2e` (31 specs pass, 7 skip because they are mouse-only or touch-only) pass. Checked in the browser at 375px and desktop width, light theme.
+Phases 0–5 built, plus a **visual refresh** (PLAN "Phase 6.5"). `typecheck`, `lint`, `test` (127 unit) and `test:e2e` (36 pass, 8 skip because they are mouse-only, touch-only or phone-only) pass.
+
+Latest round: **voice fixes** (PLAN "Phase 5.6", user feedback from a Redmi on Android Chrome).
+- Recordings stopped at ~5s because the recorder was stopped when Android ended speech recognition. Now the recorder owns the session: only Stop/Done/close end it, and recognition restarts underneath (up to 3 failed sessions, then "Live transcript stopped. Still recording"). There is a wake lock and an elapsed timer. `stop()` returns a promise, and Done awaits it so the last words and the audio are saved.
+- Transcript: `domain/transcript.ts` collapses Android's cumulative/repeated results, including across restarts. Recognition is given a clone of the recorder's mic track (newer Chrome; ignored elsewhere, and dropped after an `audio-capture` error). There's a new **Voice language** setting in the ⋯ menu (`settings.voiceLang`; default device language).
+- Phone brain dump opens without focusing the text, so no keyboard. Bottom row: Organize · big mic · Done. `Sheet full` sizes itself to `visualViewport`, so that row stays above the keyboard. Starting a recording blurs the text. Hold-to-talk now needs a 600ms hold.
+- Fixed a race where one dump could be created twice (`ensureId` is now single-flight).
+- `tests/e2e/voice.spec.ts` uses Chrome's fake mic and a scripted Android-like recognizer.
 
 Latest round (user feedback): row tap opens details; subtasks in the detail sheet now share the task-row look (round checkbox, inline edit, swipe, drag, hover delete); checkbox ring no longer tinted by urgency; **brain dump reworked** — header button on every view (+ `b`, + FAB long-press), saved to a new **Inbox** view (count badge) without organizing, several can wait, reopen/edit/delete, Organize later via the review screen (undo restores the dump). Voice now always records the original audio (playable, multiple per dump) next to an editable live transcript. Data: `dumps` table (Dexie v3), `data/dumps.ts`. Removed the "Keep voice recordings" setting and the drafts store. Fixed a race where two quick subtask adds could drop one (`repo.addSubtask`).
 
@@ -24,14 +31,15 @@ Round 4: **drag reorder rewritten** (`src/hooks/useSortable.ts`), replacing moti
 Round 5 (user feedback): **drops landed wherever you let go**. motion's `animate()` on the drag offsets reported "complete" before running, so the offsets were reset too early and the animation then wrote them back. `useSortable` now eases offsets with its own rAF tween (`tween`/`stopTween`), and e2e checks that rows don't overlap after a drop (`expectSettled`). The **lift no longer scales** (scale blurred the text); it uses the shadow only, with offsets rounded to whole pixels. **Mobile quick add is inline**: the FAB shows the same input atop the list (focused inside the tap via `flushSync`, so iOS raises the keyboard). It stays open for rapid entry and closes when blurred empty. **Brain dump on mobile is a full-screen page** (`Sheet full`): no slide-up, and focus uses `preventScroll`, so the screen no longer jumps when the keyboard opens.
 
 ## Next steps
-1. **Real-device voice test**: recording + playback + live transcript could not be exercised in headless tests (no microphone). Check on Chrome/Android and iOS Safari (iOS may not run Web Speech and MediaRecorder together; the code falls back to audio-only).
-1. **Real-device test** (iOS Safari, Android Chrome): long-press-drag (now passes with emulated CDP touch, still unconfirmed on a phone), swipes, haptics, voice, PWA install.
-2. Phase 7: accessibility audit (axe, VoiceOver/TalkBack), Lighthouse PWA check, real app icons, deploy.
-3. Optionally delete `api/` and the `smartOrganize` setting, now that AI is parked.
+1. **Real-device voice test** on the Redmi (Chrome) and iOS Safari, served over HTTPS (the mic needs it): a 1–2 minute recording, the transcript in pt-PT, the keyboard-up layout, and whether Android plays a beep on each recognition restart. Headless tests can't check the real keyboard or the speech service.
+2. If transcription is still poor after setting the language, decide: on-device Whisper (large download plus a new dependency) or the parked `api/transcribe` (needs an API key).
+3. **Real-device test** (iOS Safari, Android Chrome): long-press-drag (now passes with emulated CDP touch, still unconfirmed on a phone), swipes, haptics, voice, PWA install.
+4. Phase 7: accessibility audit (axe, VoiceOver/TalkBack), Lighthouse PWA check, real app icons, deploy.
+5. Optionally delete `api/` (except perhaps `transcribe`) and the `smartOrganize` setting, now that AI is parked.
 
 ## Open decisions
 - **Sync (Phase 6)** needs a hosted backend (Supabase keys). That conflicts with "nothing that needs keys", so it is on hold. The local engine (`src/domain/merge.ts`, `src/data/sync.ts`) is built and tested. Decide: keep the app single-device with export/import, or accept a backend.
-- Voice works only where the browser has Web Speech (Chrome, Safari). The server transcription fallback is parked.
+- Live transcript works only where the browser has Web Speech (Chrome, Safari). The recording works everywhere MediaRecorder does. Better transcription means on-device Whisper or the parked server route (see Next steps).
 
 ## Decisions (adopted)
 PWA · light theme default · Vercel · name "Clear" · subtasks one level · "Waiting" is a status · "Effort", not "difficulty" · review screen before brain-dump tasks are created · undo toasts, never confirm dialogs · no features that need API keys.
@@ -45,3 +53,4 @@ The ⋯ menu holds sort, tag filter, theme, brain dump, Done, tags, backup and a
 - The row's drag grip is `aria-hidden` on purpose. Keyboard users reorder with Alt+↑/↓, and a labelled grip would collide with title-based locators.
 - Swipe labels ("Done"/"Delete") sit inside each row, so use `getByText(title, { exact: true })` in tests, not `hasText`.
 - iOS: `navigator.vibrate` is unsupported (it fails silently). PWA storage can be evicted, so `navigator.storage.persist()` is requested at start.
+- **Phone testing:** the laptop's wired UC network (`cnc.uc.pt`) keeps devices apart, so the `--host` LAN link doesn't reach the phone, and the mic needs HTTPS anyway. Run `npm run dev`, then `cloudflared tunnel --url http://localhost:<port>` (installed via winget) and open the printed `https://…trycloudflare.com` link on the phone. `vite.config.ts` allows `.trycloudflare.com` hosts. The link changes each run and is public while it runs.

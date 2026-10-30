@@ -1,4 +1,4 @@
-import { useEffect, useRef, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { AnimatePresence, motion, useDragControls, useReducedMotion } from 'motion/react';
 import { useIsDesktop } from '../hooks/useMediaQuery';
 import styles from './Sheet.module.css';
@@ -14,12 +14,34 @@ interface Props {
   full?: boolean;
 }
 
+/**
+ * The visible area above the on-screen keyboard. Android Chrome and iOS Safari don't shrink the
+ * page for the keyboard, so a full-screen page sizes itself to this to keep its bottom row in view.
+ */
+function useVisibleArea(enabled: boolean): CSSProperties | undefined {
+  const [area, setArea] = useState<{ height: number; top: number } | null>(null);
+  useEffect(() => {
+    const vv = window.visualViewport;
+    if (!enabled || !vv) return;
+    const update = () => setArea({ height: Math.round(vv.height), top: Math.round(vv.offsetTop) });
+    update();
+    vv.addEventListener('resize', update);
+    vv.addEventListener('scroll', update);
+    return () => {
+      vv.removeEventListener('resize', update);
+      vv.removeEventListener('scroll', update);
+    };
+  }, [enabled]);
+  return enabled && area ? { top: area.top, height: area.height, bottom: 'auto' } : undefined;
+}
+
 /** Mobile: bottom sheet with drag-to-dismiss. Desktop: right panel (side) or centered modal. */
 export function Sheet({ open, onClose, title, children, side, full }: Props) {
   const desktop = useIsDesktop();
   const reduced = useReducedMotion();
   const ref = useRef<HTMLDivElement>(null);
   const controls = useDragControls();
+  const area = useVisibleArea(open && full === true && !desktop);
 
   useEffect(() => {
     if (!open) return;
@@ -64,6 +86,7 @@ export function Sheet({ open, onClose, title, children, side, full }: Props) {
             aria-modal="true"
             aria-label={title}
             className={cls}
+            style={area}
             initial={hidden}
             animate={shown}
             exit={hidden}
