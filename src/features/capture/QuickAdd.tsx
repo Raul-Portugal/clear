@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { flushSync } from 'react-dom';
 import { Plus } from 'lucide-react';
 import { createTask } from '../../data/repo';
 import { ensureTags } from '../../data/tags';
-import { Sheet } from '../../ui/Sheet';
 import { Chip } from '../../ui/Chip';
 import { useIsDesktop } from '../../hooks/useMediaQuery';
 import { formatDue } from '../../domain/dates';
@@ -11,14 +11,15 @@ import { useTags } from '../filters/useTags';
 import { toastWithUndo, useUi } from '../tasks/actions';
 import styles from './QuickAdd.module.css';
 
-function QuickInput({ autoFocus, inSheet }: { autoFocus?: boolean; inSheet?: boolean }) {
+/** `onDismiss` makes the row temporary (mobile): it goes away when left empty. */
+function QuickInput({ autoFocus, onDismiss }: { autoFocus?: boolean; onDismiss?: () => void }) {
   const [text, setText] = useState('');
   const [ignored, setIgnored] = useState<TokenKind[]>([]);
   const ref = useRef<HTMLInputElement>(null);
   const tags = useTags();
 
   useEffect(() => {
-    if (autoFocus) ref.current?.focus();
+    if (autoFocus && document.activeElement !== ref.current) ref.current?.focus();
   }, [autoFocus]);
 
   const parsed = useMemo(() => parseQuickAdd(text, tags, new Date()), [text, tags]);
@@ -68,7 +69,7 @@ function QuickInput({ autoFocus, inSheet }: { autoFocus?: boolean; inSheet?: boo
     });
 
   return (
-    <div className={`${styles.wrap} ${inSheet ? styles.sheetWrap : ''}`}>
+    <div className={`${styles.wrap} ${onDismiss ? styles.temp : ''}`}>
       <div className={styles.field}>
         <span className={styles.plus} aria-hidden>
           <Plus size={20} strokeWidth={2} />
@@ -87,10 +88,15 @@ function QuickInput({ autoFocus, inSheet }: { autoFocus?: boolean; inSheet?: boo
               setText('');
               setIgnored([]);
               ref.current?.blur();
+              onDismiss?.();
             }
           }}
+          onBlur={(e) => {
+            // tapping a chip keeps the row; leaving it empty anywhere else closes it
+            if (!text.trim() && !e.currentTarget.closest(`.${styles.wrap}`)?.contains(e.relatedTarget)) onDismiss?.();
+          }}
         />
-        {!inSheet && !text && <span className={styles.hint}>!high ~quick #tag</span>}
+        {!text && <span className={styles.hint}>!high ~quick #tag</span>}
       </div>
       {chips.length > 0 && (
         <div className={styles.chips}>
@@ -105,7 +111,7 @@ function QuickInput({ autoFocus, inSheet }: { autoFocus?: boolean; inSheet?: boo
   );
 }
 
-/** Desktop: inline input atop the list. Mobile: FAB that opens a bottom sheet. */
+/** Desktop: inline input atop the list. Mobile: the FAB opens the same input in place, atop the list. */
 export function QuickAdd() {
   const desktop = useIsDesktop();
   const { quickAdd, setQuickAdd } = useUi();
@@ -115,6 +121,7 @@ export function QuickAdd() {
   if (desktop) return <QuickInput />;
   return (
     <>
+      {quickAdd && <QuickInput autoFocus onDismiss={() => setQuickAdd(false)} />}
       <button
         type="button"
         className={styles.fab}
@@ -128,13 +135,17 @@ export function QuickAdd() {
         }}
         onPointerUp={() => clearTimeout(timer.current)}
         onPointerLeave={() => clearTimeout(timer.current)}
-        onClick={() => !held.current && setQuickAdd(true)}
+        onClick={() => {
+          if (held.current) return;
+          // render and focus inside the tap itself: iOS only raises the keyboard for a focus made during a user gesture
+          flushSync(() => setQuickAdd(true));
+          const input = document.getElementById('quick-add');
+          input?.focus({ preventScroll: true });
+          input?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+        }}
       >
         <Plus size={26} strokeWidth={2} />
       </button>
-      <Sheet open={quickAdd} onClose={() => setQuickAdd(false)} title="New task">
-        <QuickInput autoFocus inSheet />
-      </Sheet>
     </>
   );
 }

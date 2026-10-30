@@ -10,10 +10,12 @@ interface Props {
   children: ReactNode;
   /** Desktop only: right side panel instead of a centered modal. */
   side?: boolean;
+  /** Mobile only: a full-screen page instead of a bottom sheet (for writing, where the keyboard is up). */
+  full?: boolean;
 }
 
 /** Mobile: bottom sheet with drag-to-dismiss. Desktop: right panel (side) or centered modal. */
-export function Sheet({ open, onClose, title, children, side }: Props) {
+export function Sheet({ open, onClose, title, children, side, full }: Props) {
   const desktop = useIsDesktop();
   const reduced = useReducedMotion();
   const ref = useRef<HTMLDivElement>(null);
@@ -25,7 +27,7 @@ export function Sheet({ open, onClose, title, children, side }: Props) {
       if (e.key === 'Escape') onClose();
     };
     window.addEventListener('keydown', onKey);
-    if (!ref.current?.contains(document.activeElement)) ref.current?.focus();
+    if (!ref.current?.contains(document.activeElement)) ref.current?.focus({ preventScroll: true });
     return () => window.removeEventListener('keydown', onKey);
   }, [open, onClose]);
 
@@ -35,9 +37,12 @@ export function Sheet({ open, onClose, title, children, side }: Props) {
       ? side
         ? { x: 40, opacity: 0 }
         : { y: 12, opacity: 0 }
-      : { y: '100%' };
+      : full
+        ? { y: 16, opacity: 0 }
+        : { y: '100%' };
   const shown = reduced ? { opacity: 1 } : { x: 0, y: 0, opacity: 1 };
-  const cls = desktop ? (side ? styles.side : styles.modal) : styles.bottom;
+  const cls = desktop ? (side ? styles.side : styles.modal) : full ? styles.full : styles.bottom;
+  const dismissDrag = !desktop && !full && !reduced;
 
   return (
     <AnimatePresence>
@@ -62,14 +67,14 @@ export function Sheet({ open, onClose, title, children, side }: Props) {
             initial={hidden}
             animate={shown}
             exit={hidden}
-            transition={{ type: 'spring', damping: 30, stiffness: 320 }}
-            drag={!desktop && !reduced ? 'y' : false}
+            transition={full && !desktop ? { duration: 0.2, ease: 'easeOut' } : { type: 'spring', damping: 30, stiffness: 320 }}
+            drag={dismissDrag ? 'y' : false}
             dragControls={controls}
             dragListener={false}
             onPointerDown={(e) => {
               // drag to dismiss from anywhere except controls, so inputs and inner drags keep working
               const el = e.target as HTMLElement;
-              if (!desktop && !el.closest('input, textarea, button, select, label, li')) controls.start(e);
+              if (dismissDrag && !el.closest('input, textarea, button, select, label, li')) controls.start(e);
             }}
             dragConstraints={{ top: 0, bottom: 0 }}
             dragElastic={{ top: 0, bottom: 0.6 }}
@@ -77,7 +82,7 @@ export function Sheet({ open, onClose, title, children, side }: Props) {
               if (info.offset.y > 100 || info.velocity.y > 500) onClose();
             }}
           >
-            {!desktop && <div className={styles.grab} aria-hidden />}
+            {dismissDrag && <div className={styles.grab} aria-hidden />}
             {children}
           </motion.div>
         </>

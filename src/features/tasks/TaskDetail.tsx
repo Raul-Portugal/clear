@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
-import { Reorder, useDragControls } from 'motion/react';
+import { motion, useMotionValue } from 'motion/react';
 import { CalendarDays, GripVertical, Hourglass, Plus, SlidersHorizontal, Trash2, X } from 'lucide-react';
 import { Sheet } from '../../ui/Sheet';
 import { Chip } from '../../ui/Chip';
@@ -7,6 +7,7 @@ import { Segmented } from '../../ui/Segmented';
 import { Bars } from '../../ui/Bars';
 import { Checkbox } from '../../ui/Checkbox';
 import { SwipeRow } from '../../ui/SwipeRow';
+import { useSortable, type Sortable } from '../../hooks/useSortable';
 import { addSubtask, setSubtasks, setWaiting, updateTask } from '../../data/repo';
 import { ensureTag, ensureTags } from '../../data/tags';
 import { parseQuickAdd } from '../../domain/parseQuickAdd';
@@ -140,8 +141,12 @@ function SubtaskProps({ s, onChange }: { s: Subtask; onChange: (p: Partial<Subta
   );
 }
 
-function SubtaskRow({ task, s, dragging, onLift }: { task: Task; s: Subtask; dragging: boolean; onLift: (id: string | null) => void }) {
-  const controls = useDragControls();
+function SubtaskRow({ task, s, dragging, sortable }: { task: Task; s: Subtask; dragging: boolean; sortable: Sortable }) {
+  const ref = useRef<HTMLLIElement>(null);
+  const y = useMotionValue(0);
+  useEffect(() => {
+    if (ref.current) return sortable.register(s.id, ref.current, y);
+  }, [sortable, s.id, y]);
   const [title, setTitle] = useState(s.title);
   const [synced, setSynced] = useState(s.title);
   if (synced !== s.title) {
@@ -154,20 +159,14 @@ function SubtaskRow({ task, s, dragging, onLift }: { task: Task; s: Subtask; dra
   const patch = (done: boolean) =>
     void setSubtasks(task.id, task.subtasks.map((x) => (x.id === s.id ? { ...x, done } : x)), 'Subtask toggled');
   const remove = () => void setSubtasks(task.id, task.subtasks.filter((x) => x.id !== s.id), 'Subtask deleted');
-  const lift = (e: PointerEvent | React.PointerEvent) => {
-    onLift(s.id);
-    controls.start(e);
-    window.addEventListener('pointerup', () => setTimeout(() => onLift(null)), { once: true });
-  };
+  const lift = (clientY: number, touch: boolean) => sortable.start(s.id, clientY, touch);
   return (
-    <Reorder.Item
-      as="li"
-      value={s}
-      dragListener={false}
-      dragControls={controls}
+    <motion.li
+      ref={ref}
+      style={{ y }}
       className={`${styles.subRow} ${dragging ? styles.subDragging : ''}`}
     >
-      <SwipeRow locked={dragging} onComplete={() => patch(!s.done)} onDelete={remove} onLongPress={lift}>
+      <SwipeRow locked={dragging} onComplete={() => patch(!s.done)} onDelete={remove} onLongPress={(at) => lift(at.y, at.touch)}>
         <div className={styles.subCard}>
           <div className={styles.subLine}>
           <Checkbox checked={s.done} onChange={patch} label={`Complete ${s.title}`} />
@@ -199,7 +198,7 @@ function SubtaskRow({ task, s, dragging, onLift }: { task: Task; s: Subtask; dra
             onPointerDown={(e) => {
               e.preventDefault();
               e.stopPropagation();
-              lift(e);
+              lift(e.clientY, e.pointerType === 'touch');
             }}
           >
             <GripVertical size={14} strokeWidth={1.5} />
@@ -225,7 +224,7 @@ function SubtaskRow({ task, s, dragging, onLift }: { task: Task; s: Subtask; dra
           {open && <SubtaskProps s={s} onChange={update} />}
         </div>
       </SwipeRow>
-    </Reorder.Item>
+    </motion.li>
   );
 }
 
@@ -233,11 +232,19 @@ function Body({ task }: { task: Task }) {
   const [title, setTitle] = useState(task.title);
   const [notes, setNotes] = useState(task.notes ?? '');
   const [sub, setSub] = useState('');
-  const [liftedSub, setLiftedSub] = useState<string | null>(null);
   const [tag, setTag] = useState('');
   const [addingTag, setAddingTag] = useState(false);
   const [local, setLocal] = useState({ src: task.subtasks, list: task.subtasks });
   const subs = local.src === task.subtasks ? local.list : task.subtasks;
+  const { listRef: subListRef, active: liftedSub, sortable: subSort } = useSortable({
+    ids: subs.map((s) => s.id),
+    onDrop: (id, to) => {
+      const list = subs.filter((s) => s.id !== id);
+      list.splice(to, 0, subs.find((s) => s.id === id)!);
+      setLocal({ src: task.subtasks, list });
+      void setSubtasks(task.id, list, 'Subtasks reordered');
+    },
+  });
   const tags = useTags();
   const today = toISODate(new Date());
 
@@ -448,20 +455,11 @@ function Body({ task }: { task: Task }) {
             </span>
           )}
         </h2>
-        <Reorder.Group
-          as="ul"
-          axis="y"
-          values={subs}
-          onReorder={(list) => setLocal({ src: task.subtasks, list })}
-          className={styles.subList}
-          onPointerUp={() => {
-            if (subs.some((s, i) => s.id !== task.subtasks[i]?.id)) void setSubtasks(task.id, subs, 'Subtasks reordered');
-          }}
-        >
+        <ul ref={subListRef} className={styles.subList}>
           {subs.map((s) => (
-            <SubtaskRow key={s.id} task={task} s={s} dragging={liftedSub === s.id} onLift={setLiftedSub} />
+            <SubtaskRow key={s.id} task={task} s={s} dragging={liftedSub === s.id} sortable={subSort} />
           ))}
-        </Reorder.Group>
+        </ul>
         <div className={styles.addSubRow}>
           <span className={styles.addPlus}>
             <Plus size={18} strokeWidth={2} aria-hidden />

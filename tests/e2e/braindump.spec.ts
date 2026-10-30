@@ -60,6 +60,7 @@ test('closing with Escape keeps the typed text', async ({ page }) => {
   await page.goto('/');
   await dump(page, 'Remember the thing');
   await page.keyboard.press('Escape');
+  await expect(page.getByRole('dialog')).toHaveCount(0);
   await page.getByRole('button', { name: /^Inbox/ }).click();
   await expect(page.getByText('Remember the thing')).toBeVisible();
 });

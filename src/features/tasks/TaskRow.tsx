@@ -1,11 +1,12 @@
 import { memo, useEffect, useRef, useState, type CSSProperties } from 'react';
-import { Reorder, useDragControls } from 'motion/react';
+import { motion, useMotionValue } from 'motion/react';
 import { GripVertical, Hourglass, ListChecks } from 'lucide-react';
 import { Checkbox } from '../../ui/Checkbox';
 import { Bars } from '../../ui/Bars';
 import { formatDue, isOverdue } from '../../domain/dates';
 import type { Tag, Task } from '../../domain/types';
 import { SwipeRow } from '../../ui/SwipeRow';
+import type { Sortable } from '../../hooks/useSortable';
 import { setSubtasks } from '../../data/repo';
 import { SubtaskPills } from './SubtaskPills';
 import { tagColor } from '../filters/useTags';
@@ -17,32 +18,25 @@ interface Props {
   task: Task;
   /** All tags, loaded once by the list (one live query instead of one per row). */
   tags: Tag[];
-  /** Called when a drag ends; `moved` is false when the row was lifted and dropped in place. */
-  onDrop?: (id: string, moved: boolean) => void;
+  /** Enables drag-to-reorder (from the list's useSortable). */
+  sortable?: Sortable;
   dragging?: boolean;
-  onLift?: (id: string) => void;
 }
 
-function TaskRowBase({ task, tags, onDrop, onLift, dragging }: Props) {
+function TaskRowBase({ task, tags, sortable, dragging }: Props) {
   const [leaving, setLeaving] = useState(false);
   const [expanded, setExpanded] = useState(false);
   const openDetail = useUi((s) => s.openDetail);
   const selected = useUi((s) => s.selectedId === task.id);
-  const controls = useDragControls();
   const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
   const ref = useRef<HTMLLIElement>(null);
-  const lifted = useRef(false);
+  const y = useMotionValue(0);
   const justLifted = useRef(false);
   const now = new Date();
 
-  // While lifted on touch, stop the page from scrolling so the finger drags the row.
   useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    const block = (e: TouchEvent) => lifted.current && e.preventDefault();
-    el.addEventListener('touchmove', block, { passive: false });
-    return () => el.removeEventListener('touchmove', block);
-  }, []);
+    if (sortable && ref.current) return sortable.register(task.id, ref.current, y);
+  }, [sortable, task.id, y]);
 
   const done = task.status === 'done';
   const checked = done || leaving;
@@ -67,48 +61,27 @@ function TaskRowBase({ task, tags, onDrop, onLift, dragging }: Props) {
     }
   }
 
-  function lift(e: PointerEvent | React.PointerEvent, from: 'hold' | 'grip') {
-    if (!onDrop) return;
-    lifted.current = true;
+  function lift(clientY: number, touch: boolean, from: 'hold' | 'grip') {
+    if (!sortable) return;
     justLifted.current = true;
-    onLift?.(task.id);
-    controls.start(e);
-    window.addEventListener(
-      'pointerup',
-      () =>
-        setTimeout(() => {
-          setTimeout(() => (justLifted.current = false), 50);
-          if (!lifted.current) return; // a real drag ended through onDragEnd
-          lifted.current = false;
-          onDrop(task.id, false);
-          if (from === 'hold') openDetail(task.id);
-        }),
-      { once: true },
-    );
+    sortable.start(task.id, clientY, touch, (moved) => {
+      setTimeout(() => (justLifted.current = false), 50);
+      if (!moved && from === 'hold') openDetail(task.id);
+    });
   }
 
   return (
-    <Reorder.Item
-      as="li"
+    <motion.li
       ref={ref}
-      value={task.id}
-      dragListener={false}
-      dragControls={controls}
-      layout="position"
       initial={{ opacity: 0 }}
-      animate={{ opacity: 1, scale: dragging ? 1.02 : 1 }}
+      animate={{ opacity: 1 }}
       exit={{ opacity: 0, height: 0, marginBottom: 0 }}
-      transition={{ default: { duration: 0.18 }, layout: { type: 'spring', stiffness: 700, damping: 50, mass: 0.6 } }}
-      onDragEnd={() => {
-        const wasLifted = lifted.current;
-        lifted.current = false;
-        if (wasLifted) onDrop?.(task.id, true);
-      }}
+      transition={{ duration: 0.18 }}
       className={`${styles.row} ${selected ? styles.selected : ''} ${dragging ? styles.dragging : ''}`}
-      style={{ '--urg': urg.color, '--urg-soft': urg.soft } as CSSProperties}
+      style={{ y, ...({ '--urg': urg.color, '--urg-soft': urg.soft } as CSSProperties) }}
       data-task-id={task.id}
     >
-      {onDrop && (
+      {sortable && (
         <button
           type="button"
           className={styles.grip}
@@ -116,7 +89,7 @@ function TaskRowBase({ task, tags, onDrop, onLift, dragging }: Props) {
           tabIndex={-1}
           onPointerDown={(e) => {
             e.preventDefault();
-            lift(e, 'grip');
+            lift(e.clientY, e.pointerType === 'touch', 'grip');
           }}
         >
           <GripVertical size={16} strokeWidth={1.5} />
@@ -126,7 +99,7 @@ function TaskRowBase({ task, tags, onDrop, onLift, dragging }: Props) {
         locked={dragging}
         onComplete={() => void completeTask(task, !done)}
         onDelete={() => void deleteTask(task)}
-        onLongPress={(e) => (onDrop ? lift(e, 'hold') : openDetail(task.id))}
+        onLongPress={(at) => (sortable ? lift(at.y, at.touch, 'hold') : openDetail(task.id))}
       >
         <div className={styles.card}>
           <div className={styles.line}>
@@ -212,7 +185,7 @@ function TaskRowBase({ task, tags, onDrop, onLift, dragging }: Props) {
           )}
         </div>
       </SwipeRow>
-    </Reorder.Item>
+    </motion.li>
   );
 }
 

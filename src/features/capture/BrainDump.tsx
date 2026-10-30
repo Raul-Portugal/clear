@@ -84,7 +84,7 @@ function Editor({ initialId, onClose }: { initialId: string | null; onClose: () 
   }, [dump]);
   useEffect(() => {
     if (!initialId) loaded.current = true;
-    ref.current?.focus();
+    ref.current?.focus({ preventScroll: true }); // the page must not scroll to chase the field while the sheet opens
   }, [initialId]);
 
   useEffect(() => {
@@ -312,7 +312,7 @@ export function BrainDump() {
   const set = useUi((s) => s.set);
   const close = () => set({ brainDump: false, dumpId: null });
   return (
-    <Sheet open={open} onClose={close} title="Brain dump">
+    <Sheet open={open} onClose={close} title="Brain dump" full>
       {open && <Editor key={dumpId ?? 'new'} initialId={dumpId} onClose={close} />}
     </Sheet>
   );

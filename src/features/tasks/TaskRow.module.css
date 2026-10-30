@@ -51,4 +51,3 @@
 .sub + .sub { border-top: 1px solid var(--hairline); }
 .subBody { flex: 1; min-width: 0; text-align: left; display: flex; flex-direction: column; gap: 2px; padding: var(--s2) 0; }
 .subTitle { font-size: var(--fs-title); overflow-wrap: anywhere; }
-.dragging { will-change: transform; }

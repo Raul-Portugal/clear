@@ -12,8 +12,8 @@ interface Props {
   children: ReactNode;
   onComplete: () => void;
   onDelete: () => void;
-  /** Fired after holding still; gets the original pointer event so a drag can take over. */
-  onLongPress: (e: PointerEvent) => void;
+  /** Fired after holding still, with where the pointer is now, so a drag can take over. */
+  onLongPress: (at: { y: number; touch: boolean }) => void;
   /** While true (e.g. the row is being dragged to reorder), horizontal swipes are ignored. */
   locked?: boolean;
 }
@@ -23,6 +23,9 @@ export function SwipeRow({ children, onComplete, onDelete, onLongPress, locked }
   const x = useMotionValue(0);
   const [armed, setArmed] = useState<'none' | 'complete' | 'delete'>('none');
   const press = useRef<ReturnType<typeof setTimeout>>(undefined);
+  // touch long-press runs on touch events: pointer events get cancelled when the browser
+  // starts a scroll or a text selection, which is exactly what a long-press can trigger
+  const touch = useRef<{ x: number; y: number; lastY: number } | null>(null);
 
   const leftOpacity = useTransform(x, [0, 24, THRESHOLD], [0, 0.6, 1]);
   const rightOpacity = useTransform(x, [-THRESHOLD, -24, 0], [1, 0.6, 0]);
@@ -31,17 +34,15 @@ export function SwipeRow({ children, onComplete, onDelete, onLongPress, locked }
 
   const bind = useDrag(
     ({ first, last, movement: [mx, my], cancel, tap, event }) => {
-      if (first) {
-        const e = event as PointerEvent;
-        press.current = setTimeout(() => {
-          haptic();
-          onLongPress(e);
-        }, LONG_PRESS_MS);
+      const mouse = (event as PointerEvent).pointerType !== 'touch';
+      if (first && mouse) {
+        const y = (event as PointerEvent).clientY;
+        press.current = setTimeout(() => onLongPress({ y, touch: false }), LONG_PRESS_MS);
       }
-      if (Math.abs(mx) > 8 || Math.abs(my) > 8 || tap) clearTimeout(press.current);
+      if (mouse && (Math.abs(mx) > 8 || Math.abs(my) > 8 || tap)) clearTimeout(press.current);
       if (locked) return;
       if (Math.abs(my) > Math.abs(mx) + 6 && !last) {
-        clearTimeout(press.current);
+        if (mouse) clearTimeout(press.current);
         cancel();
         return;
       }
@@ -52,7 +53,7 @@ export function SwipeRow({ children, onComplete, onDelete, onLongPress, locked }
         return z;
       });
       if (last) {
-        clearTimeout(press.current);
+        if (mouse) clearTimeout(press.current);
         setArmed('none');
         if (z === 'none') {
           void animate(x, 0, { type: 'spring', stiffness: 500, damping: 40 });
@@ -82,7 +83,41 @@ export function SwipeRow({ children, onComplete, onDelete, onLongPress, locked }
           Delete <Trash2 size={20} strokeWidth={2} />
         </motion.span>
       </motion.div>
-      <div {...bind()} className={styles.track}>
+      <div
+        {...bind()}
+        className={styles.track}
+        onTouchStart={(e) => {
+          const t = e.touches[0];
+          touch.current = { x: t.clientX, y: t.clientY, lastY: t.clientY };
+          clearTimeout(press.current);
+          if (e.touches.length > 1) return;
+          press.current = setTimeout(() => {
+            if (!touch.current) return;
+            haptic();
+            x.set(0);
+            onLongPress({ y: touch.current.lastY, touch: true });
+          }, LONG_PRESS_MS);
+        }}
+        onTouchMove={(e) => {
+          const t = e.touches[0];
+          if (touch.current && Math.hypot(t.clientX - touch.current.x, t.clientY - touch.current.y) > 10) {
+            clearTimeout(press.current);
+          }
+          if (touch.current) touch.current.lastY = t.clientY;
+        }}
+        onTouchEnd={() => {
+          clearTimeout(press.current);
+          touch.current = null;
+        }}
+        onTouchCancel={() => {
+          clearTimeout(press.current);
+          touch.current = null;
+        }}
+        // no long-press callout / context menu on touch: the hold is ours
+        onContextMenu={(e) => {
+          if (touch.current) e.preventDefault();
+        }}
+      >
         <motion.div className={styles.fg} style={{ x }}>
           {children}
         </motion.div>

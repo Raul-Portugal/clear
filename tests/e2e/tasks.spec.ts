@@ -101,3 +101,21 @@ test('a task with subtasks: first click shows them, second opens details', async
   await dialog.getByRole('button', { name: 'Options for Send invites' }).click();
   await expect(dialog.getByRole('img', { name: 'Deep effort' })).toBeVisible();
 });
+
+test('mobile quick add opens in place atop the list and closes when left empty', async ({ page, isMobile }) => {
+  test.skip(!isMobile, 'the FAB is mobile-only');
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Add task' }).click();
+  const input = page.getByRole('textbox', { name: 'Add a task' });
+  await expect(input).toBeFocused();
+  await expect(page.getByRole('dialog')).toHaveCount(0); // no sheet
+  await input.fill('Inline one');
+  await input.press('Enter');
+  await expect(page.getByText('Inline one', { exact: true })).toBeVisible();
+  await expect(input).toBeFocused(); // ready for the next one
+  const box = (await input.boundingBox())!;
+  const first = (await page.locator('[data-task-id]').first().boundingBox())!;
+  expect(box.y).toBeLessThan(first.y); // the field sits above the list, not at the bottom
+  await page.locator('h1').click();
+  await expect(input).toHaveCount(0);
+});

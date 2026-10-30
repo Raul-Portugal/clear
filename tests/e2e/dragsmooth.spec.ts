@@ -48,7 +48,9 @@ test.describe('drag reorder smoothness', () => {
     const all = await page.evaluate(() => (window as unknown as { __s: { top: number; order: string; down: boolean; t: number }[] }).__s);
     const s = all.filter((p) => p.down); // while held; the release settle animation is expected
     const jumps = s.slice(1).map((p, i) => Math.abs(p.top - s[i].top));
-    const flips = s.slice(1).filter((p, i) => p.order !== s[i].order).length;
+    // an order counts once it holds for two frames: at a swap's crossing point the two rows are level for a frame
+    const stable = s.filter((p, i) => i === 0 || (p.order === s[i - 1].order && (i < 2 || s[i - 2].order !== p.order)));
+    const flips = stable.slice(1).filter((p, i) => p.order !== stable[i].order).length;
     const dts = s.slice(1).map((p, i) => p.t - s[i].t);
     console.log('max frame time ms', Math.max(...dts).toFixed(0));
     console.log('max frame jump', Math.max(...jumps).toFixed(1), 'order changes', flips);
